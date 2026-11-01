@@ -117,17 +117,7 @@ function M.edit(action, t)
       return
     end
 
-    local new_lines, n
-    if action == "clear" then
-      new_lines, n = ops.clear(work)
-    elseif action == "replace" then
-      new_lines, n = ops.replace(work, config.get().names)
-    elseif action == "unreplace" then
-      new_lines, n = ops.unreplace(work, config.get().names)
-    else
-      local wrap_cfg = config.get().wrap
-      new_lines, n = ops.wrap(work, wrap_cfg.prefix, wrap_cfg.suffix)
-    end
+    local new_lines, n = ops.apply(action, work, config.get())
 
     if n == 0 then
       notify.info("no emojis found in scope")

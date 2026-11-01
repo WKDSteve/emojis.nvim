@@ -233,4 +233,25 @@ function M.unreplace(lines, names)
   return out, total
 end
 
+---Run the text transformation named `action` over `lines`: one dispatch for the buffer edit
+---(`actions.edit`) and the multi-file rewrite (`search.apply_across_files`), so they cannot drift.
+---An unknown action raises instead of silently behaving like another one.
+---@param action "clear"|"replace"|"unreplace"|"wrap"
+---@param lines string[]
+---@param cfg { names: table<integer, string>, wrap: { prefix: string, suffix: string }|nil }
+---@return string[] new_lines
+---@return integer n
+function M.apply(action, lines, cfg)
+  if action == "clear" then
+    return M.clear(lines)
+  elseif action == "replace" then
+    return M.replace(lines, cfg.names)
+  elseif action == "unreplace" then
+    return M.unreplace(lines, cfg.names)
+  elseif action == "wrap" then
+    return M.wrap(lines, cfg.wrap.prefix, cfg.wrap.suffix)
+  end
+  error(("emojis.ops.apply: unknown action %q"):format(tostring(action)), 2)
+end
+
 return M

@@ -69,7 +69,7 @@ function M.apply_across_files(action, match_lines, confirm_fn)
     return
   end
 
-  local names = config.get().names
+  local cfg = config.get()
   local total_n, total_files, skipped, failed = 0, 0, 0, 0
 
   for i = 1, #files do
@@ -88,12 +88,7 @@ function M.apply_across_files(action, match_lines, confirm_fn)
       local ok, err = pcall(function()
         local lines = loaded and api.nvim_buf_get_lines(bufnr, 0, -1, false) or fn.readfile(path)
 
-        local new_lines, n
-        if action == "clear" then
-          new_lines, n = ops.clear(lines)
-        else
-          new_lines, n = ops.replace(lines, names)
-        end
+        local new_lines, n = ops.apply(action, lines, cfg)
 
         if n > 0 then
           if loaded then

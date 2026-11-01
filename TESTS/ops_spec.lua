@@ -157,4 +157,28 @@ return function(H)
     eq(ops.count({}), 0, "count: no lines")
     eq(ops.count({ "🇩🇪 ⚠️ 👍🏽" }), 3, "count: flag, VS16 and skin-tone graphemes each count once")
   end
+
+  -- apply: the one dispatch behind actions.edit and search.apply_across_files
+  do
+    local cfg = { names = { [0x2705] = ":white_check_mark:" }, wrap = { prefix = "<", suffix = ">" } }
+    local input = { "a ✅ b" }
+    for _, action in ipairs({ "clear", "replace", "wrap" }) do
+      local direct_lines, direct_n
+      if action == "clear" then
+        direct_lines, direct_n = ops.clear(input)
+      elseif action == "replace" then
+        direct_lines, direct_n = ops.replace(input, cfg.names)
+      else
+        direct_lines, direct_n = ops.wrap(input, "<", ">")
+      end
+      local out, n = ops.apply(action, input, cfg)
+      eq(out[1], direct_lines[1], "apply(" .. action .. ") equals the direct call")
+      eq(n, direct_n, "apply(" .. action .. ") count equals the direct call")
+    end
+    local replaced = ops.apply("replace", input, cfg)
+    local restored = ops.apply("unreplace", replaced, cfg)
+    eq(restored[1], input[1], "apply: unreplace undoes replace")
+    local pok, err = pcall(ops.apply, "bogus", input, cfg)
+    H.ok(not pok and tostring(err):find("bogus", 1, true), "apply: an unknown action raises and names it")
+  end
 end
