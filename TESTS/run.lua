@@ -1,6 +1,7 @@
 -- TESTS/run.lua — headless test runner for emojis.nvim.
 -- NOTE: the suite is run by testing.nvim (scripts/test.sh); this file stays because testing.nvim takes the
--- run order from the `specs` list below (alphabetical order turns commands_spec.lua red). It still works standalone.
+-- run order from the `specs` list below (alphabetical order turns commands_spec.lua red). It also works standalone
+-- (`nvim -n -i NONE --headless -u NONE -l TESTS/run.lua`: it loads minimal_init.lua itself).
 --
 -- Run from the repo root:
 --   nvim -n -i NONE --headless -u NONE -c "set rtp+=." -c "luafile TESTS/run.lua" -c "qa!"
@@ -19,6 +20,10 @@
 -- nvim got through the command queue.
 local function main()
   local dir = debug.getinfo(1, "S").source:sub(2):match("(.*[/\\])") or "./"
+  -- The dependencies (lib.nvim, ui.nvim, testing.nvim) are put on the runtimepath by minimal_init.lua, exactly as
+  -- under scripts/test.sh; run without it, `emojis.config` could not load them and 17 specs failed. It is
+  -- idempotent, so running under testing.nvim (which has done it) is harmless.
+  dofile(dir .. "minimal_init.lua")
   local H = dofile(dir .. "harness.lua")
 
   -- Any spec that inserts a glyph records it for the overlay's frecency ordering.
@@ -68,6 +73,7 @@ local function main()
     -- command / search layers
     "commands_spec.lua",
     "commands_dispatch_spec.lua",
+    "commands_handlers_spec.lua",
     "search_spec.lua",
     "search_run_spec.lua",
     "unicode_spec.lua",
