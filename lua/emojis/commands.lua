@@ -84,6 +84,70 @@ local function has(list, v)
   return false
 end
 
+---@alias Emojis.NoScopeHandler fun(cmd_args: table)
+
+---Actions that ignore the scope token; each reads its own second positional.
+---@type table<string, Emojis.NoScopeHandler>
+---@internal
+local NO_SCOPE_HANDLERS = {
+  insert = function()
+    require("emojis.picker").insert()
+  end,
+  toggle = function(cmd_args)
+    -- Range wins, else the cursor line (scope.resolve applies that precedence).
+    local target, err = scope_m.resolve("line", cmd_args.range, cmd_args.line1, cmd_args.line2)
+    if not target then
+      notify.error("scope error: " .. tostring(err))
+      return
+    end
+    -- `!` means "the other direction" here: `checkbox.toggle` has always
+    -- taken a `dir`, but only the Lua API could reach the backward one.
+    actions.checkbox("toggle", target, cmd_args.fargs[2], cmd_args.bang and -1 or 1)
+  end,
+  overlay = function(cmd_args)
+    -- The second positional is a mode here, not a scope; `nil` means "use the
+    -- configured default". Scope validation was skipped for NO_SCOPE actions,
+    -- so `cmd_args.fargs[2]` is still raw.
+    require("emojis.overlay").open(cmd_args.fargs[2] and cmd_args.fargs[2]:lower() or nil)
+  end,
+  unicode = function(cmd_args)
+    require("emojis.unicode").dispatch(cmd_args.fargs, cmd_args.bang)
+  end,
+  first = function()
+    require("emojis.nav").first()
+  end,
+  next = function(cmd_args)
+    -- `:Emojis next 3` jumps three emoji forward. A positional rather than a
+    -- command count: `:3Emojis next` would be an address (line 3), which is
+    -- not what "three emoji onward" means.
+    require("emojis.nav").next(tonumber(cmd_args.fargs[2]))
+  end,
+}
+
+---Actions that work on a resolved scope target (a line range, the buffer, ...).
+---@type table<string, fun(target: table)>
+---@internal
+local SCOPED_HANDLERS = {
+  clear = function(target)
+    actions.edit("clear", target)
+  end,
+  replace = function(target)
+    actions.edit("replace", target)
+  end,
+  unreplace = function(target)
+    actions.edit("unreplace", target)
+  end,
+  wrap = function(target)
+    actions.edit("wrap", target)
+  end,
+  list = function(target)
+    actions.list(target)
+  end,
+  count = function(target)
+    actions.count(target)
+  end,
+}
+
 ---Dispatch a parsed command invocation.
 ---@param cmd_args table  nvim_create_user_command argument table
 ---@return nil
@@ -102,42 +166,9 @@ local function execute(cmd_args)
     return
   end
 
-  if action == "insert" then
-    require("emojis.picker").insert()
-    return
-  end
-  if action == "toggle" then
-    -- Range wins, else the cursor line (scope.resolve applies that precedence).
-    local target, err = scope_m.resolve("line", cmd_args.range, cmd_args.line1, cmd_args.line2)
-    if not target then
-      notify.error("scope error: " .. tostring(err))
-      return
-    end
-    -- `!` means "the other direction" here: `checkbox.toggle` has always
-    -- taken a `dir`, but only the Lua API could reach the backward one.
-    actions.checkbox("toggle", target, cmd_args.fargs[2], cmd_args.bang and -1 or 1)
-    return
-  end
-  if action == "overlay" then
-    -- The second positional is a mode here, not a scope; `nil` means "use the
-    -- configured default". The NO_SCOPE bypass above already skipped scope
-    -- validation, so `cmd_args.fargs[2]` is still raw.
-    require("emojis.overlay").open(cmd_args.fargs[2] and cmd_args.fargs[2]:lower() or nil)
-    return
-  end
-  if action == "unicode" then
-    require("emojis.unicode").dispatch(cmd_args.fargs, cmd_args.bang)
-    return
-  end
-  if action == "first" then
-    require("emojis.nav").first()
-    return
-  end
-  if action == "next" then
-    -- `:Emojis next 3` jumps three emoji forward. A positional rather than a
-    -- command count: `:3Emojis next` would be an address (line 3), which is
-    -- not what "three emoji onward" means.
-    require("emojis.nav").next(tonumber(cmd_args.fargs[2]))
+  local no_scope = NO_SCOPE_HANDLERS[action]
+  if no_scope then
+    no_scope(cmd_args)
     return
   end
   if scope == "cwd" then
@@ -157,20 +188,7 @@ local function execute(cmd_args)
     notify.error("scope error: " .. tostring(err))
     return
   end
-
-  if action == "clear" then
-    actions.edit("clear", target)
-  elseif action == "replace" then
-    actions.edit("replace", target)
-  elseif action == "unreplace" then
-    actions.edit("unreplace", target)
-  elseif action == "wrap" then
-    actions.edit("wrap", target)
-  elseif action == "list" then
-    actions.list(target)
-  elseif action == "count" then
-    actions.count(target)
-  end
+  SCOPED_HANDLERS[action](target)
 end
 
 ---@type table<string, string>
