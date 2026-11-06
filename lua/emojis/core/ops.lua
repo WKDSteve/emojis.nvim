@@ -227,7 +227,8 @@ end
 ---@internal
 local function glyph_of_token(token)
   local hex = token:match("^U%+(%x[%x%+]*)$")
-  if not hex then
+  -- `:U+1F44D+:` and `:U+1F44D++1F3FD:` are not what `replace` writes: left as text.
+  if not hex or hex:sub(-1) == "+" or hex:find("++", 1, true) then
     return nil
   end
   local parts = {}

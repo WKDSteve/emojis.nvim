@@ -70,7 +70,7 @@ return function(H)
       eq(ops.unreplace(out, names, vs16)[1], "a " .. c[1] .. " b", "round trip: " .. c[3])
     end
 
-    for _, token in ipairs({ ":U+110000:", ":U+D800:", ":U+1F44D+110000:", ":U+:", ":U++:" }) do
+    for _, token in ipairs({ ":U+110000:", ":U+D800:", ":U+1F44D+110000:", ":U+:", ":U++:", ":U+1F44D+:", ":U+1F44D++1F3FD:" }) do
       eq(ops.unreplace({ token }, names, vs16)[1], token, "an invalid token stays: " .. token)
     end
   end
