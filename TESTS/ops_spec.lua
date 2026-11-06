@@ -45,6 +45,36 @@ return function(H)
     eq(n, 2, "replace: replaced count")
   end
 
+  -- the round trip is byte-identical: VS16 forms, skin tones, ZWJ sequences, flags
+  do
+    local patterns = require("emojis.core.patterns")
+    local warn = "\u{26A0}"
+    local names = { [0x26A0] = ":warning:", [0x1F44D] = ":thumbsup:", [0x2705] = ":white_check_mark:" }
+    local vs16 = ops.vs16_codepoints({ { warn .. patterns.VS16, "warning" }, { "\u{2705}", "white_check_mark" } })
+    eq(vs16[0x26A0], true, "vs16_codepoints: a pick written with the selector")
+    eq(vs16[0x2705], nil, "vs16_codepoints: a pick without it")
+
+    local cases = {
+      { warn .. patterns.VS16, ":warning:", "the catalog form keeps its name, one placeholder" },
+      { warn, ":U+26A0:", "the bare form is not the catalog form" },
+      { "\u{2705}", ":white_check_mark:", "a named glyph without a selector" },
+      { "\u{2705}" .. patterns.VS16, ":U+2705+FE0F:", "a selector the catalog does not write" },
+      { "\u{1F44D}\u{1F3FD}", ":U+1F44D+1F3FD:", "a skin tone is kept" },
+      { "\u{1F468}\u{200D}\u{1F469}", ":U+1F468+200D+1F469:", "a ZWJ sequence is kept" },
+      { "\u{1F1E9}\u{1F1EA}", ":U+1F1E9+1F1EA:", "a flag is kept" },
+    }
+    for _, c in ipairs(cases) do
+      local out, n = ops.replace({ "a " .. c[1] .. " b" }, names, vs16)
+      eq(out[1], "a " .. c[2] .. " b", "replace: " .. c[3])
+      eq(n, 1, "replace: one placeholder: " .. c[3])
+      eq(ops.unreplace(out, names, vs16)[1], "a " .. c[1] .. " b", "round trip: " .. c[3])
+    end
+
+    for _, token in ipairs({ ":U+110000:", ":U+D800:", ":U+1F44D+110000:", ":U+:", ":U++:" }) do
+      eq(ops.unreplace({ token }, names, vs16)[1], token, "an invalid token stays: " .. token)
+    end
+  end
+
   -- unreplace: inverse of replace, including the :U+XXXX: fallback form
   do
     local out, n = ops.unreplace({ "a :white_check_mark: b :U+1F389: c :unknown_token:" }, { [0x2705] = ":white_check_mark:" })

@@ -170,6 +170,11 @@ both sides of a removed emoji (or emoji run) down to **one** space:
 " 🚀🔥 "      ->  " "
 ```
 
+`replace` followed by `unreplace` gives back the same bytes. A `:name:` is only
+used for the form the catalog writes (`⚠️` becomes `:warning:`); anything else
+takes the codepoint form, such as `:U+26A0:` for a `⚠` without the selector and
+`:U+1F44D+1F3FD:` for a skin tone, a ZWJ sequence or a flag.
+
 In addition, VS16 emojis (e.g. ⚠️) are correctly treated as **one** emoji —
 previously they were counted twice and turned into `:warning::U+FE0F:` by
 `replace`.

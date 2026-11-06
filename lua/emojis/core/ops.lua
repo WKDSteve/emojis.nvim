@@ -154,15 +154,57 @@ local function map_spans(lines, transform)
   return out, total
 end
 
----Replace each emoji with its `:name:` placeholder (or `:U+XXXX:` fallback).
+---The glyph a named codepoint comes back as: the catalog's form, with the variation selector
+---when the catalog writes it with one.
+---@param cp integer
+---@param vs16 table<integer, boolean>|nil
+---@return string
+---@internal
+local function named_glyph(cp, vs16)
+  return patterns.encode(cp) .. ((vs16 and vs16[cp]) and patterns.VS16 or "")
+end
+
+---The codepoints of a named glyph that carry a variation selector in `picks`.
+---@param picks Emojis.Config.PickEntry[]|nil
+---@return table<integer, boolean>
+function M.vs16_codepoints(picks)
+  local set = {}
+  for _, pick in ipairs(picks or {}) do
+    local cp = patterns.codepoint(pick[1])
+    if pick[1] == patterns.encode(cp) .. patterns.VS16 then
+      set[cp] = true
+    end
+  end
+  return set
+end
+
+---The `:U+XXXX:` form of a glyph: every codepoint it has, `:U+1F44D+1F3FD:` for a sequence.
+---@param glyph string
+---@return string
+---@internal
+local function codepoint_token(glyph)
+  local parts = {}
+  for char in glyph:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+    parts[#parts + 1] = string.format("%04X", patterns.codepoint(char))
+  end
+  return ":U+" .. table.concat(parts, "+") .. ":"
+end
+
+---Replace each emoji with its `:name:` placeholder (or the `:U+XXXX:` form). A name is only used
+---when `unreplace` brings back these exact bytes; a skin tone, a ZWJ sequence, a flag or a form
+---the catalog does not write that way takes the `:U+...:` form, so the round trip is lossless.
 ---@param lines string[]
 ---@param names table<integer, string>  codepoint -> :name:
+---@param vs16? table<integer, boolean>  codepoints whose name stands for the form with VS16
 ---@return string[] replaced, integer count
-function M.replace(lines, names)
+function M.replace(lines, names, vs16)
   names = names or {}
   return map_spans(lines, function(glyph)
     local cp = patterns.codepoint(glyph)
-    return names[cp] or string.format(":U+%04X:", cp)
+    if names[cp] and glyph == named_glyph(cp, vs16) then
+      return names[cp]
+    end
+    return codepoint_token(glyph)
   end)
 end
 
@@ -179,16 +221,45 @@ function M.wrap(lines, prefix, suffix)
   end)
 end
 
----Replace each `:name:` placeholder (or `:U+XXXX:` fallback) with its emoji —
+---The glyph of a `U+XXXX` or `U+XXXX+YYYY` token, nil when one codepoint is not valid.
+---@param token string
+---@return string|nil
+---@internal
+local function glyph_of_token(token)
+  local hex = token:match("^U%+(%x[%x%+]*)$")
+  if not hex then
+    return nil
+  end
+  local parts = {}
+  for part in hex:gmatch("[^+]+") do
+    -- PRIN-25: validate before it reaches encode()'s arithmetic. Above
+    -- U+10FFFF (the last valid Unicode codepoint) `encode()` either
+    -- raises (byte value out of range) or, worse, silently produces a
+    -- byte sequence that is not valid UTF-8 -- an unrecognised token is
+    -- supposed to be left untouched, not "restored" into either. The
+    -- UTF-16 surrogate block (U+D800-U+DFFF) is excluded too: those
+    -- codepoints are not valid Unicode scalar values, and encode()
+    -- would still produce a non-UTF-8 byte sequence (CESU-8) for them.
+    local cp = tonumber(part, 16)
+    if not cp or cp > 0x10FFFF or (cp >= 0xD800 and cp <= 0xDFFF) then
+      return nil
+    end
+    parts[#parts + 1] = patterns.encode(cp)
+  end
+  return #parts > 0 and table.concat(parts) or nil
+end
+
+---Replace each `:name:` placeholder (or `:U+XXXX:` form) with its emoji —
 ---the inverse of `replace()`. Unrecognized `:...:` tokens are left untouched.
 ---@param lines string[]
 ---@param names table<integer, string>  codepoint -> :name: (same map as replace())
+---@param vs16? table<integer, boolean>  the same set as replace()
 ---@return string[] restored, integer count
-function M.unreplace(lines, names)
+function M.unreplace(lines, names, vs16)
   names = names or {}
   local inv = {}
   for cp, name in pairs(names) do
-    inv[name] = patterns.encode(cp)
+    inv[name] = named_glyph(cp, vs16)
   end
 
   local out, total = {}, 0
@@ -200,24 +271,7 @@ function M.unreplace(lines, names)
       if not a then
         break
       end
-      local glyph = inv[":" .. token .. ":"]
-      if not glyph then
-        local hex = token:match("^U%+(%x+)$")
-        if hex then
-          -- PRIN-25: validate before it reaches encode()'s arithmetic. Above
-          -- U+10FFFF (the last valid Unicode codepoint) `encode()` either
-          -- raises (byte value out of range) or, worse, silently produces a
-          -- byte sequence that is not valid UTF-8 -- an unrecognised token is
-          -- supposed to be left untouched, not "restored" into either. The
-          -- UTF-16 surrogate block (U+D800-U+DFFF) is excluded too: those
-          -- codepoints are not valid Unicode scalar values, and encode()
-          -- would still produce a non-UTF-8 byte sequence (CESU-8) for them.
-          local cp = tonumber(hex, 16)
-          if cp and cp <= 0x10FFFF and not (cp >= 0xD800 and cp <= 0xDFFF) then
-            glyph = patterns.encode(cp)
-          end
-        end
-      end
+      local glyph = inv[":" .. token .. ":"] or glyph_of_token(token)
       if glyph then
         pieces[#pieces + 1] = s:sub(last, a - 1)
         pieces[#pieces + 1] = glyph
@@ -238,16 +292,16 @@ end
 ---An unknown action raises instead of silently behaving like another one.
 ---@param action "clear"|"replace"|"unreplace"|"wrap"
 ---@param lines string[]
----@param cfg { names: table<integer, string>, wrap: { prefix: string, suffix: string }|nil }
+---@param cfg { names: table<integer, string>, picks: Emojis.Config.PickEntry[]|nil, wrap: table|nil }
 ---@return string[] new_lines
 ---@return integer n
 function M.apply(action, lines, cfg)
   if action == "clear" then
     return M.clear(lines)
   elseif action == "replace" then
-    return M.replace(lines, cfg.names)
+    return M.replace(lines, cfg.names, M.vs16_codepoints(cfg.picks))
   elseif action == "unreplace" then
-    return M.unreplace(lines, cfg.names)
+    return M.unreplace(lines, cfg.names, M.vs16_codepoints(cfg.picks))
   elseif action == "wrap" then
     return M.wrap(lines, cfg.wrap.prefix, cfg.wrap.suffix)
   end
