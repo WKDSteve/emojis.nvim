@@ -25,10 +25,12 @@ return {
     -- The suite leaves no state behind, so the guard fails any leak.
     state = "error",
   },
-  -- Nothing to allow: the suite neither writes files outside the temp dir, starts processes nor
+  -- What the child editor of the test sheets needs; the rest of the suite neither writes files outside
+  -- the temp dir, starts processes nor
   -- opens connections.
   guard_allow = {
-    fs = {},
+    -- sheets_spec.lua: the child loads plugin/, and emojis_autodoc.lua writes the ignored doc/tags on a clone.
+    fs = { "doc" },
     -- sheets_spec.lua: every test sheet (TESTS/sheets/) runs in a child editor.
     spawn = { "nvim" },
     network = {},
