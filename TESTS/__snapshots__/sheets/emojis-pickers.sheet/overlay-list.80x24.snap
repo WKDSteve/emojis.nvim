@@ -1,0 +1,54 @@
+testing.nvim screen v1
+size: 80x24
+cursor: 3,2
+mode: n
+--- text
+01|x
+02|╭──────── Emojis ────────╮
+03|│✅  :white_check_mark:  │
+04|│❌  :x:                 │
+05|│⚠️  :warning:           │
+06|│🐛  :bug:               │
+07|│🔥  :fire:              │
+08|│🚀  :rocket:            │
+09|│💡  :bulb:              │
+10|│📝  :memo:              │
+11|│🔧  :wrench:            │
+12|│⚙️  :gear:              │
+13|│📌  :pushpin:           │
+14|│🎯  :dart:              │
+15|│🔒  :lock:              │
+16|│❓  :question:          │
+17|│❗  :exclamation:       │
+18|│👀  :eyes:              │
+19|│👍  :thumbsup:          │
+20|│✨  :sparkles:          │
+21|│💥  :boom:              │
+22|│🎉  :tada:              │
+23|╰────────────────────────╯
+24|:Emojis overlay list
+--- attrs
+01|
+02|aaaaaaaaabbbbbbbbaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+03|adddddddddddddddddddddddacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+04|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+05|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+06|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+07|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+08|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+09|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+10|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+11|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+12|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+13|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+14|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+15|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+16|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+17|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+18|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+19|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+20|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+21|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+22|aaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+23|aaaaaaaaaaaaaaaaaaaaaaaaaacccccccccccccccccccccccccccccccccccccccccccccccccccccc
+24|eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee

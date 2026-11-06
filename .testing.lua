@@ -7,7 +7,7 @@ return {
   plugin = "emojis",
   -- How the spec files are run: "auto" = sniffed per file, "h" = on the project's own TESTS/harness.lua,
   -- "script" = a self-running script in its own process.
-  dialect = "h",
+  dialect = { ["TESTS/sheets_spec.lua"] = "busted", ["*"] = "h" },
   -- Dependencies (directory names) put on the runtimepath: $<NAME>_DIR, .deps/<name>, ../<name>,
   -- stdpath('data')/lazy/<name>.
   deps = { "lib.nvim", "ui.nvim" },
@@ -27,7 +27,12 @@ return {
   },
   -- Nothing to allow: the suite neither writes files outside the temp dir, starts processes nor
   -- opens connections.
-  guard_allow = { fs = {}, spawn = {}, network = {} },
+  guard_allow = {
+    fs = {},
+    -- sheets_spec.lua: every test sheet (TESTS/sheets/) runs in a child editor.
+    spawn = { "nvim" },
+    network = {},
+  },
   -- The runner counts which commands, keymaps and autocommands the specs exercise (docs/SURFACE.md of testing.nvim);
   -- `scripts/test.sh surface` compares that with surface.baseline.json (a regression gate, not a percentage).
   surface = { track = true },
