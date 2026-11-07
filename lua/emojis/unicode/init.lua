@@ -382,6 +382,10 @@ end
 ---@return nil
 function M.dispatch(fargs, bang)
   local sub = (fargs[2] or "name"):lower()
+  -- `:Emojis unicode search! <query>`: the bang as the documented part of the word, beside `:Emojis! unicode search`.
+  if sub == "search!" then
+    sub, bang = "search", true
+  end
 
   if sub == "name" then
     M.name_at_cursor(fargs[3], fargs[4])

@@ -154,6 +154,19 @@ return function(H)
     end)
     eq(#said.error, 1, "dispatch: unknown sub-action is refused")
     ok(said.error[1]:find('unknown unicode sub%-action "bogus"') ~= nil, "dispatch: names the offending token")
+
+    -- `search!` is the documented spelling of the bang (docs/commands.md), beside `:Emojis! unicode search`.
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "" })
+    local real_select = vim.ui.select
+    vim.ui.select = function(items, _, on_choice)
+      on_choice(items[1])
+    end
+    said = H.notices(function()
+      unicode.dispatch({ "unicode", "search!", "U+0041" }, false)
+    end)
+    vim.ui.select = real_select
+    eq(#said.error, 0, "dispatch: search! is the search, not an unknown sub-action")
+    eq(vim.api.nvim_get_current_line(), "A", "dispatch: search! inserts the pick")
   end)
 
   -- search: a U+xxxx query resolves to exactly that one codepoint, without
