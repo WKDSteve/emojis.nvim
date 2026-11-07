@@ -129,7 +129,7 @@ not a scope.
 
 | Sub-action | Behaviour |
 |---|---|
-| `name` | Reports the character under the cursor: codepoint (hex/dec), glyph, name, and any digraph that produces it. With `reg`, also saves one representation into that register — `type` picks which (`value`\|`hex`\|`name`\|`html`\|`digraph`\|`regex`, default `name`). `reg = "="` is refused: the expression register evaluates whatever is written to it as Vimscript the next time anything reads `@=`, and the name text can come from downloaded/cached data. |
+| `name` | Reports the character under the cursor: codepoint (hex), glyph, name, and any digraph that produces it. With `reg`, also saves one representation into that register — `type` picks which (`value`\|`hex`\|`name`\|`html`\|`digraph`\|`regex`, default `name`). `reg = "="` is refused: the expression register evaluates whatever is written to it as Vimscript the next time anything reads `@=`, and the name text can come from downloaded/cached data. |
 | `search` | Looks up characters by name substring (case-insensitive), or by an exact `U+xxxx`/`0xNNNN`/decimal value. Results open in `vim.ui.select`; picking one reports it. With `!`, picking one **inserts** the glyph at the cursor instead. |
 | `table` | Opens a scratch buffer listing the whole loaded name table, one line per character. |
 | `digraphs` | Opens a scratch buffer listing every digraph Neovim itself knows (`vim.fn.digraph_getlist`) — needs no download. |
