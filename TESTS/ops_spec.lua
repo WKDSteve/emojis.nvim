@@ -70,6 +70,12 @@ return function(H)
       eq(ops.unreplace(out, names, vs16)[1], "a " .. c[1] .. " b", "round trip: " .. c[3])
     end
 
+    -- text glued to the front of a placeholder: the colon of `a:b` must not swallow the one of the placeholder
+    for _, line in ipairs({ "Status:done\u{2705}", "a:b\u{1F389}", "x:y:\u{1F44D}\u{1F3FD}", "k:v" .. warn .. patterns.VS16 }) do
+      local out = ops.replace({ line }, names, vs16)
+      eq(ops.unreplace(out, names, vs16)[1], line, "round trip after text with a colon: " .. line)
+    end
+
     for _, token in ipairs({ ":U+110000:", ":U+D800:", ":U+1F44D+110000:", ":U+:", ":U++:", ":U+1F44D+:", ":U+1F44D++1F3FD:" }) do
       eq(ops.unreplace({ token }, names, vs16)[1], token, "an invalid token stays: " .. token)
     end

@@ -278,8 +278,12 @@ function M.unreplace(lines, names, vs16)
         pieces[#pieces + 1] = glyph
         total = total + 1
         last = b + 1
+        pos = b + 1
+      else
+        -- The closing colon of an unknown `:word:` can open the next placeholder: `Status:done✅`
+        -- became `Status:done:white_check_mark:`, and skipping past it lost the glyph for good.
+        pos = b
       end
-      pos = b + 1
     end
     pieces[#pieces + 1] = s:sub(last)
     out[li] = table.concat(pieces)
