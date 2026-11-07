@@ -76,6 +76,34 @@ jobs:
           repository: WKDSteve/ui.nvim
           path: ui.nvim
           ref: ci-verified
+      # Only for the test sheets that ask for them (TESTS/sheets/_helpers.lua, add_deps): telescope on the runtimepath of
+      # the whole suite would change what `picker.engine = "auto"` means to the specs. None has a ci-verified branch that
+      # applies here, so each is pinned; bump deliberately, not by drifting.
+      - uses: actions/checkout@v5
+        with:
+          repository: nvim-telescope/telescope.nvim
+          path: telescope.nvim
+          ref: 40aedd8a68c78a656a10a8d62d80c54af59420fb
+      - uses: actions/checkout@v5
+        with:
+          repository: nvim-lua/plenary.nvim
+          path: plenary.nvim
+          ref: 74b06c6c75e4eeb3108ec01852001636d85a932b
+      - uses: actions/checkout@v5
+        with:
+          repository: WKDSteve/cascade.nvim
+          path: cascade.nvim
+          ref: 3fb6d536bb02d8f826708e6b0a496e839108dfab
+      # ripgrep: the cwd scope in the test sheets. Without it those sheets are a reported skip, not coverage.
+      - name: Install ripgrep
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          case "$RUNNER_OS" in
+            Linux) sudo apt-get update && sudo apt-get install -y ripgrep ;;
+            macOS) brew install ripgrep ;;
+            Windows) choco install -y ripgrep ;;
+          esac
       - uses: rhysd/action-setup-vim@v1
         with:
           neovim: true

@@ -14,8 +14,11 @@ return {
   -- "none" = all specs in one nvim, "file" = one nvim per spec file
   -- (nothing leaks from one file into the next).
   isolated = "file",
+  -- One child editor per test sheet: more of them than fit into the default 60 s of a spec file on a slow runner.
+  timeouts = { file_ms = 300000 },
   -- Guards (safety nets, see testing.nvim docs/GUARDS.md). The suite writes no files outside the
-  -- temp dir, starts no processes, opens no connections and answers no prompts, so those are errors.
+  -- temp dir, starts no processes, opens no connections and answers no prompts, so those are errors. A test sheet's child
+  -- editor runs rg and writes below its sandbox: that is the child's business, the guards watch this editor.
   guards = {
     fs = "error",
     scheduled_error = "error",

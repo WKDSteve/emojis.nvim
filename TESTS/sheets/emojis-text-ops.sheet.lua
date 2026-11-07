@@ -42,6 +42,10 @@ return {
     { keys = ":2,3Emojis clear<CR>" },
     { expect = [[_G.text() == "a 🚀 1\nb 2\nc 3\nd 💡 4"]], note = "an explicit range wins over the scope" },
 
+    { lua = [[_G.set("a 🚀 1", "b 🔥 2", "c 🐛 3", "d 💡 4")]] },
+    { keys = "jVj:Emojis clear<CR>", note = "a real Visual selection, :'<,'> typed by Neovim" },
+    { expect = [[_G.text() == "a 🚀 1\nb 2\nc 3\nd 💡 4"]], note = "the range wins over the default scope %" },
+
     { lua = [[_G.set("warn ⚠️ end")]] },
     { keys = ":Emojis clear %<CR>" },
     { expect = [[_G.text() == "warn end"]], note = "the VS16 glyph is one emoji: no selector left" },
@@ -49,26 +53,31 @@ return {
     -- count against list
     { lua = [[_G.set("🚀 and ⚠️", "plain", "🔥") ; _G.notes = {}]] },
     { keys = ":Emojis count %<CR>" },
-    { expect = [[table.concat(_G.notes, " "):find("3", 1, true) ~= nil]], note = "count says 3" },
+    { expect = [[table.concat(_G.notes, " "):find("Found 3 emojis in 3 lines", 1, true) ~= nil]], note = "count says 3" },
     { keys = ":Emojis list %<CR>" },
     { expect = [[#vim.fn.getqflist() == 3]], note = "list has exactly as many entries as count said" },
     { lua = [[vim.cmd("cclose")]] },
 
     -- replace, unreplace, wrap, section 2
-    { lua = [[_G.set("🚀 and ⚠️ end", "🔥") ; _G.before = _G.text()]] },
+    {
+      lua = [[_G.set("- [ ] task one 🔲", "- [x] task two ✅", "some text 🚀 with an emoji 🔥 mid-line and a ⚠️ VS16 one")
+      _G.before = _G.text()]],
+      note = "the test buffer of the checklist",
+    },
     { keys = ":Emojis replace %<CR>" },
     {
-      expect = [[not _G.text():find("🚀", 1, true) and select(2, _G.text():gsub(":[%w_+-]+:", "")) == 3]],
-      note = "every emoji is one placeholder, the VS16 one too",
+      expect = [[not _G.text():find("🚀", 1, true) and select(2, _G.text():gsub(":[%w_+-]+:", "")) == 5]],
+      note = "every emoji is one placeholder",
+    },
+    {
+      expect = [[select(2, _G.text():gsub(":warning:", "")) == 1 and not _G.text():find("\239\184\143", 1, true)]],
+      note = "the VS16 one too: one :warning:, no selector left",
     },
     { keys = ":Emojis unreplace %<CR>" },
     { expect = [[_G.text() == _G.before]], note = "the round trip is byte-identical" },
     { lua = [[_G.set("a 🚀 b")]] },
     { keys = ":Emojis wrap %<CR>" },
-    {
-      expect = [[_G.text():find("🚀", 1, true) ~= nil and _G.text() ~= "a 🚀 b"]],
-      note = "wrap marks the emoji and keeps it",
-    },
+    { expect = [=[_G.text() == "a [[🚀]] b"]=], note = "wrap marks the emoji and keeps it" },
 
     -- toggle, section 3
     { lua = [[_G.set("- [ ] task one 🔲 trailing text")

@@ -91,10 +91,6 @@ return {
   },
   judge = {
     "The grid, the key hints of grid_keys and the list read well and show every glyph whole",
-  },
-  manual = {
-    "With telescope or fzf-lua installed, :Emojis insert opens there and a name fragment such as 'warning' finds the glyph",
-    "Insert one glyph from the overlay 3-4 times, reopen: it moved to the front and nothing new appeared",
-    ":Emojis unicode search rocket and :Emojis unicode table with the Unicode data downloaded (needs curl and network)",
+    "In a real terminal the emoji are two cells wide: no cell of the grid is cut off or shifted",
   },
 }
