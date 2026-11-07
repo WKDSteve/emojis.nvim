@@ -137,6 +137,10 @@ return function(H)
     eq(seen.entry.ordinal, "rocket", "telescope: sorting is by label, so typing the name finds it")
     eq(seen.entry.value[1], "🚀", "telescope: the entry keeps the pick itself as its value")
     eq(seen.closed, 4242, "telescope: the prompt is closed before inserting")
+    eq(line_of(buf), "ab", "telescope: not inserted before the prompt's insert mode has ended (the sheet emojis.telescope)")
+    vim.wait(1000, function()
+      return line_of(buf) ~= "ab"
+    end)
     eq(line_of(buf), "a🚀b", "telescope: the selected glyph lands at the cursor")
     eq(seen.opts.prompt_title, "Insert emoji", "telescope: titled")
   end
@@ -184,6 +188,9 @@ return function(H)
 
     ok(tele.found, "auto: telescope wins when both are installed")
     eq(fzf.items, nil, "auto: fzf-lua is not consulted")
+    vim.wait(1000, function()
+      return line_of(buf) ~= "ab"
+    end)
     eq(line_of(buf), "a🚀b", "auto: the glyph still reaches the buffer")
   end
 

@@ -52,7 +52,12 @@ local function try_telescope(picks)
           local selection = action_state.get_selected_entry()
           actions.close(prompt_bufnr)
           if selection then
-            insert_at_cursor(selection.value[1])
+            -- actions.close() compensates ahead of time for leaving the prompt's insert mode: the cursor
+            -- of the window is one to the right until that has happened, so right now the glyph would
+            -- land one character off.
+            vim.schedule(function()
+              insert_at_cursor(selection.value[1])
+            end)
           end
         end)
         return true
