@@ -210,6 +210,20 @@ return function(H)
     eq(picked_count, 1, "search: name substring scan finds the matching entry")
   end)
 
+  -- table_open(): the real file starts with U+0000, and a NUL in a string makes it a Blob to vim.fn.strtrans (E976),
+  -- which took the whole table down.
+  do
+    local data = { by_cp = { [0] = "NULL" }, list = { { cp = 0, name = "NULL" } }, ranges = {} }
+    local called_ok, err = pcall(with_stub_data, function()
+      return data
+    end, function()
+      unicode.table_open()
+    end)
+    ok(called_ok, "table_open: a table with U+0000 opens: " .. tostring(err))
+    eq(vim.api.nvim_buf_get_lines(0, 0, -1, false)[1], "U+0000  ^@  NULL", "table_open: U+0000 shows as ^@")
+    vim.cmd("bwipeout! " .. vim.fn.bufnr("Unicode Table"))
+  end
+
   -- table_open(): a second call while the first window is still open must
   -- reuse the existing named buffer/window rather than colliding on the
   -- name (nvim_buf_set_name raises E95 on a duplicate name) and leaving a

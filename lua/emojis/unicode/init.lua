@@ -332,11 +332,12 @@ function M.table_open()
   -- whole call ("replacement string item contains newlines"). strtrans
   -- renders it as a printable "^@"/"<0a>"-style placeholder instead, the
   -- same function vim-matchup's own status-line renderer uses for exactly
-  -- this reason.
+  -- this reason. U+0000, the first row of the real file, does not even get there: a NUL in a Lua string reaches
+  -- vim.fn as a Blob and strtrans raises E976, so it gets the "^@" strtrans would have rendered.
   local lines = {}
   for i = 1, #sorted do
     local e = sorted[i]
-    lines[i] = ("U+%04X  %s  %s"):format(e.cp, vim.fn.strtrans(patterns.encode(e.cp)), e.name)
+    lines[i] = ("U+%04X  %s  %s"):format(e.cp, e.cp == 0 and "^@" or vim.fn.strtrans(patterns.encode(e.cp)), e.name)
   end
 
   open_named_scratch("Unicode Table", lines)
