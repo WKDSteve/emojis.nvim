@@ -3,7 +3,7 @@
 return {
   id = "emojis.frecency",
   title = "emojis.nvim: a glyph used often moves to the front, and nothing else joins the overlay",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   requires = {
     { lua = [[pcall(require, "ui.kit")]], reason = "the overlay needs ui.nvim" },
   },

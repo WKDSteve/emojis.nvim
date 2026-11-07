@@ -3,7 +3,7 @@
 return {
   id = "emojis.completion",
   title = "emojis.nvim: tab completion of the actions and of each action's second argument",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

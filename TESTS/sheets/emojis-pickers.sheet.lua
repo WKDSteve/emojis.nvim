@@ -5,7 +5,7 @@
 return {
   id = "emojis.pickers",
   title = "emojis.nvim: :Emojis overlay, insert, unicode",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   engine = "rpc",
   sizes = { { rows = 24, cols = 80 } },
   requires = {

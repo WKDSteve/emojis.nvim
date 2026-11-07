@@ -3,7 +3,7 @@
 return {
   id = "emojis.no-ui",
   title = "emojis.nvim: without ui.nvim the overlay explains itself and :Emojis insert still works",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

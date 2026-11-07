@@ -4,7 +4,7 @@
 return {
   id = "emojis.overlay",
   title = "emojis.nvim: :Emojis overlay moves with hjkl and the arrows, the list has a row per glyph",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   requires = {
     { lua = [[pcall(require, "ui.kit")]], reason = "the overlay needs ui.nvim" },
   },

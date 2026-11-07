@@ -3,7 +3,7 @@
 return {
   id = "emojis.unicode-name",
   title = "emojis.nvim: :Emojis unicode name, the catalog offline, the first download, the cache, the registers",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

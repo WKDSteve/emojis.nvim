@@ -3,7 +3,7 @@
 return {
   id = "emojis.unicode-no-curl",
   title = "emojis.nvim: :Emojis unicode without curl says why, and digraphs still works",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

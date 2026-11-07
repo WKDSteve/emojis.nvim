@@ -3,7 +3,7 @@
 return {
   id = "emojis.unicode-corrupt",
   title = "emojis.nvim: a corrupt Unicode cache is reported and deleted, the next command downloads again",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

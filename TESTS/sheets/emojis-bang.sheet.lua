@@ -3,7 +3,7 @@
 return {
   id = "emojis.bang",
   title = "emojis.nvim: the bang of toggle, of a cwd search and of unicode search do not leak into each other",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   requires = {
     { lua = [[vim.fn.executable("rg") == 1]], reason = "the cwd scope needs ripgrep" },
   },

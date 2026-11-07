@@ -3,7 +3,7 @@
 return {
   id = "emojis.unicode-search",
   title = "emojis.nvim: :Emojis unicode search by name and by code, its bang, table, digraphs",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

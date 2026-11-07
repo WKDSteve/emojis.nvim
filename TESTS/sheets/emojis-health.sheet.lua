@@ -3,7 +3,7 @@
 return {
   id = "emojis.health",
   title = "emojis.nvim: :checkhealth names the composer, ui.kit, the picker, rg and the Unicode data",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

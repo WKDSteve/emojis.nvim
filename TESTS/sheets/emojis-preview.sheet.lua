@@ -4,7 +4,7 @@
 return {
   id = "emojis.preview",
   title = "emojis.nvim: preview.enable highlights each emoji, then removes it",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

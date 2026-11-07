@@ -3,7 +3,7 @@
 return {
   id = "emojis.nav",
   title = "emojis.nvim: :Emojis next with a count, a range, a zero and a count over the cap",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

@@ -6,7 +6,7 @@
 return {
   id = "emojis.text-ops",
   title = "emojis.nvim: :Emojis clear, count, list, replace, wrap, toggle, first, next",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   engine = "rpc",
   sizes = { { rows = 24, cols = 80 } },
   steps = {

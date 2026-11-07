@@ -4,7 +4,7 @@
 return {
   id = "emojis.health-no-lib",
   title = "emojis.nvim: :checkhealth without lib.nvim says what is missing and completes",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

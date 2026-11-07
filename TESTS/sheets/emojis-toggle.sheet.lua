@@ -4,7 +4,7 @@
 return {
   id = "emojis.toggle",
   title = "emojis.nvim: :Emojis toggle with a range, a set name and checkbox.default_set",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")

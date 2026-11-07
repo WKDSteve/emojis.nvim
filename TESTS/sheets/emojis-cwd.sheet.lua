@@ -4,7 +4,7 @@
 return {
   id = "emojis.cwd",
   title = "emojis.nvim: :Emojis list, count and clear cwd, confirmation, unsaved buffers, the bang",
-  task = "emojis.nvim/testblatt-bindings-checkliste",
+  task = "emojis.nvim/manual-checklist-run",
   requires = {
     { lua = [[vim.fn.executable("rg") == 1]], reason = "the cwd scope needs ripgrep" },
   },
