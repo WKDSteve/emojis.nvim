@@ -75,18 +75,19 @@ return {
     { wait = "_G.floats() == 0" },
     { expect = [[_G.text() ~= "x"]], note = "the pick landed in the buffer" },
 
-    -- unicode: the name of the character under the cursor
+    -- unicode: the name of the character under the cursor. A name outside the catalog needs the UCD file: the sample
+    -- is cached and curl answered locally (TESTS/sheets/_helpers.lua), so the child never downloads from unicode.org.
     {
-      lua = [[vim.api.nvim_buf_set_lines(0, 0, -1, false, { "é" })
-      vim.api.nvim_win_set_cursor(0, { 1, 0 })
-      _G.notes = {}
-      vim.notify = function(msg) _G.notes[#_G.notes + 1] = tostring(msg) end]],
+      lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")
+      _G.stub_curl()
+      _G.write_ucd()
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, { "ß" })
+      vim.api.nvim_win_set_cursor(0, { 1, 0 })]],
     },
-    { keys = ":Emojis unicode name<CR>", ignore_errmsg = true },
-    { settle = 200 },
+    { keys = ":Emojis unicode name<CR>" },
     {
-      expect = [[(table.concat(_G.notes, " ") .. vim.fn.execute("messages")):find("U+00E9", 1, true) ~= nil]],
-      note = "the code point of the character is reported",
+      expect = [[_G.noted("U+00DF  ß  LATIN SMALL LETTER SHARP S") and #_G.curls == 0]],
+      note = "code point, glyph and name of the character, from the cache",
     },
   },
   judge = {

@@ -23,10 +23,14 @@ return {
       note = "every character whose name holds it, in any case",
     },
 
+    -- `_G.offered` is forgotten before each one: a search that offers nothing must not pass on the previous answer
+    { lua = [[_G.offered = nil]] },
     { keys = ":Emojis unicode search U+1F680<CR>" },
     { expect = [[#_G.offered == 1 and _G.offered[1]:find("🚀", 1, true)]], note = "by U+" },
+    { lua = [[_G.offered = nil]] },
     { keys = ":Emojis unicode search 0x1F680<CR>" },
     { expect = [[#_G.offered == 1 and _G.offered[1]:find("🚀", 1, true)]], note = "by 0x" },
+    { lua = [[_G.offered = nil]] },
     { keys = ":Emojis unicode search 128640<CR>" },
     { expect = [[#_G.offered == 1 and _G.offered[1]:find("🚀", 1, true)]], note = "by decimal" },
     { expect = [[_G.text() == "x"]], note = "still nothing inserted" },
