@@ -7,6 +7,12 @@ local M = {}
 function M.check()
   vim.health.start("emojis")
 
+  -- `emojis.config` is built on lib.lua.config, so it cannot load without lib.nvim: exactly the machine
+  -- whose report has to say so, and the rest of the report still has something to say. The defaults
+  -- are the honest answer there, no setup() can have run.
+  local ok_config, config = pcall(require, "emojis.config")
+  local cfg = ok_config and config.get() or require("emojis.config.DEFAULTS")
+
   if vim.fn.has("nvim-0.9") == 1 then
     vim.health.ok("Neovim >= 0.9")
   else
@@ -42,7 +48,7 @@ function M.check()
 
   local has_telescope = pcall(require, "telescope.pickers")
   local has_fzf_lua = pcall(require, "fzf-lua")
-  local engine = require("emojis.config").get().picker.engine
+  local engine = cfg.picker.engine
   if has_telescope then
     vim.health.ok("telescope.nvim found (picker.engine = " .. engine .. ")")
   elseif has_fzf_lua then
@@ -51,7 +57,7 @@ function M.check()
     vim.health.info("neither telescope.nvim nor fzf-lua found — insert picker uses vim.ui.select")
   end
 
-  local cmd = require("emojis.config").get().search.cmd
+  local cmd = cfg.search.cmd
   if vim.fn.executable(cmd) == 1 then
     vim.health.ok(("'%s' found on PATH (cwd scope: list/count/clear/replace)"):format(cmd))
   else
@@ -88,7 +94,7 @@ function M.check()
     vim.health.info("which-key not installed (optional; only labels the preset's <leader>e group)")
   end
 
-  if require("emojis.config").get().keymaps.preset then
+  if cfg.keymaps.preset then
     vim.health.ok("keymaps.preset enabled (<C-e>, <leader>ee, <leader>et, <leader>ec, <leader>el bound)")
   else
     vim.health.info("keymaps.preset disabled (default) — set keymaps.preset = true to opt in")
@@ -120,7 +126,7 @@ function M.check()
   -- user would never get to read the diagnosis they came for.
   local ok_composer, composer = pcall(require, "lib.nvim.bindings.usercmd.composer")
   if ok_composer then
-    composer.checkhealth(require("emojis.config").get().command)
+    composer.checkhealth(cfg.command)
   end
 end
 

@@ -223,5 +223,31 @@ return function(H)
     eq(rec.raised, nil, "...and the report completes instead of raising on the same missing module")
   end
 
+  -- ------------------------------------------------------------ regression
+  -- lib.nvim missing altogether: `emojis.config` is built on lib.lua.config, so the checks that read
+  -- the config raised right behind the error line, and `:checkhealth` showed "Failed to run" instead
+  -- of the rest of the report.
+  do
+    local names = { "lib.nvim.bindings.usercmd.composer", "lib.lua.config", "emojis.config" }
+    local saved = {}
+    for _, name in ipairs(names) do
+      saved[name] = { package.loaded[name], package.preload[name] }
+      package.loaded[name] = nil
+    end
+    local missing = function()
+      error("lib.nvim not installed (test stub)")
+    end
+    package.preload[names[1]] = missing
+    package.preload[names[2]] = missing
+    local rec = report()
+    for _, name in ipairs(names) do
+      package.loaded[name], package.preload[name] = saved[name][1], saved[name][2]
+    end
+
+    ok(said(rec, "error", "will fail to register"), "check: without lib.nvim the error line is there")
+    eq(rec.raised, nil, "...and the checks that read the config do not raise behind it")
+    ok(said(rec, "info", "plugin guard") or said(rec, "ok", "plugin loaded"), "...and the report reaches its end")
+  end
+
   config.setup({})
 end
