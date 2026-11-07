@@ -193,15 +193,22 @@ local function find(query)
   end
 
   local needle = query:lower()
-  local results = {}
+  local results, seen = {}, {}
   local MAX_RESULTS = 200
+  -- A character of the catalog is a row of the UCD too: one result per character, not one per source.
+  local function add(cp)
+    if not seen[cp] then
+      seen[cp] = true
+      results[#results + 1] = M.info(cp)
+    end
+  end
   local cfg_names = require("emojis.config").get().names
   for cp, label in pairs(cfg_names) do
     if #results >= MAX_RESULTS then
       break
     end
     if label:lower():find(needle, 1, true) then
-      results[#results + 1] = M.info(cp)
+      add(cp)
     end
   end
   for i = 1, #data.list do
@@ -210,7 +217,7 @@ local function find(query)
     end
     local entry = data.list[i]
     if entry.name:lower():find(needle, 1, true) then
-      results[#results + 1] = M.info(entry.cp)
+      add(entry.cp)
     end
   end
   table.sort(results, function(a, b)

@@ -186,6 +186,24 @@ return function(H)
     ok(said.info[#said.info]:find("U%+0041") ~= nil, "search: reports the picked entry")
   end)
 
+  -- search: a catalog glyph is also a row of the UCD; it is offered once, not once per source.
+  do
+    local rocket = { by_cp = { [0x1F680] = "ROCKET" }, list = { { cp = 0x1F680, name = "ROCKET" } }, ranges = {} }
+    local offered
+    local real_select = vim.ui.select
+    vim.ui.select = function(items)
+      offered = items
+    end
+    local called_ok, err = pcall(with_stub_data, function()
+      return rocket
+    end, function()
+      unicode.search("rocket", false)
+    end)
+    vim.ui.select = real_select
+    assert(called_ok, err)
+    eq(#offered, 1, "search: a character in the catalog and in the UCD is one result")
+  end
+
   -- search: an ordinary name query DOES scan, and finds the decoy.
   with_stub_data(function()
     return {
