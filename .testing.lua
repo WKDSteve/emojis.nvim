@@ -43,4 +43,40 @@ return {
   surface = { track = true },
   -- gated: a failed conformance check makes `scripts/test.sh conformance` exit 1 (docs/CONFORMANCE.md of testing.nvim)
   conformance = { gate = true },
+  -- The pipeline is derived (`scripts/test.sh ci list`). The GitHub workflow is generated from `workflow`:
+  -- `testing init --workflow=public --force` writes it (testing.nvim docs/WORKFLOW-CI.md), the step
+  -- workflow-in-sync checks it.
+  ci = {
+    workflow = {
+      name = "emojis.nvim",
+      layout = "hosted",
+      -- the steps that depend on the platform: the windows and macOS legs run only these
+      platform = { "suite", "conformance" },
+      -- only for the test sheets that ask for them (TESTS/sheets/_helpers.lua, add_deps, which looks in .deps):
+      -- telescope on the runtimepath of the whole suite would change what `picker.engine = "auto"` means
+      checkouts = {
+        {
+          repo = "nvim-telescope/telescope.nvim",
+          ref = "40aedd8a68c78a656a10a8d62d80c54af59420fb",
+          why = "The telescope engine of the picker test sheets.",
+        },
+        {
+          repo = "nvim-lua/plenary.nvim",
+          ref = "74b06c6c75e4eeb3108ec01852001636d85a932b",
+          why = "Needed by telescope in the test sheets.",
+        },
+        {
+          repo = "WKDSteve/cascade.nvim",
+          ref = "3fb6d536bb02d8f826708e6b0a496e839108dfab",
+          why = "The cascade engine of the picker test sheets.",
+        },
+      },
+      packages = { { name = "ripgrep", why = "the cwd scope of the test sheets; without it they are a reported skip" } },
+      -- `testing ci land`: a check branch ci/** runs the hosted legs, main moves only once it is green there
+      land = true,
+    },
+    steps = {
+      ["workflow-in-sync"] = { preset = "workflow-in-sync" },
+    },
+  },
 }
