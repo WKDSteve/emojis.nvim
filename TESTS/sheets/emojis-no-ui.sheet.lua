@@ -2,6 +2,7 @@
 -- ALL/manual-test-checklists/emojis.md): the overlay says what it needs, the picker falls back to vim.ui.select.
 return {
   id = "emojis.no-ui",
+  feature = "emojis.overlay",
   title = "emojis.nvim: without ui.nvim the overlay explains itself and :Emojis insert still works",
   task = "emojis.nvim/manual-checklist-run",
   steps = {

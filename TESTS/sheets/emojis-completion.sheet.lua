@@ -2,6 +2,7 @@
 -- ALL/manual-test-checklists/emojis.md). `getcompletion(..., "cmdline")` is the completion the wildmenu shows.
 return {
   id = "emojis.completion",
+  feature = "emojis.completion",
   title = "emojis.nvim: tab completion of the actions and of each action's second argument",
   task = "emojis.nvim/manual-checklist-run",
   steps = {

@@ -3,6 +3,7 @@
 -- confirmation is the one stub: a sheet cannot press a key in a blocking prompt.
 return {
   id = "emojis.cwd",
+  feature = "emojis.cwd",
   title = "emojis.nvim: :Emojis list, count and clear cwd, confirmation, unsaved buffers, the bang",
   task = "emojis.nvim/manual-checklist-run",
   requires = {

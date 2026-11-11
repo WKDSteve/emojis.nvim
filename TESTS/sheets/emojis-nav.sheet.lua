@@ -2,6 +2,7 @@
 -- ALL/manual-test-checklists/emojis.md). first, next and the wrap are in emojis-text-ops.sheet.lua.
 return {
   id = "emojis.nav",
+  feature = "emojis.navigation",
   title = "emojis.nvim: :Emojis next with a count, a range, a zero and a count over the cap",
   task = "emojis.nvim/manual-checklist-run",
   steps = {

@@ -2,6 +2,7 @@
 -- section 9 of ALL/manual-test-checklists/emojis.md).
 return {
   id = "emojis.unicode-corrupt",
+  feature = "emojis.unicode",
   title = "emojis.nvim: a corrupt Unicode cache is reported and deleted, the next command downloads again",
   task = "emojis.nvim/manual-checklist-run",
   steps = {

@@ -2,6 +2,7 @@
 -- emojis.nvim/testblatt-bindings-checkliste; section 9 of ALL/manual-test-checklists/emojis.md): a PATH with nothing.
 return {
   id = "emojis.unicode-no-curl",
+  feature = "emojis.unicode",
   title = "emojis.nvim: :Emojis unicode without curl says why, and digraphs still works",
   task = "emojis.nvim/manual-checklist-run",
   steps = {

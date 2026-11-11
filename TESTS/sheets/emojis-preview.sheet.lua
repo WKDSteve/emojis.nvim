@@ -3,6 +3,7 @@
 -- The duration is long here so that a slow runner sees it.
 return {
   id = "emojis.preview",
+  feature = "emojis.preview",
   title = "emojis.nvim: preview.enable highlights each emoji, then removes it",
   task = "emojis.nvim/manual-checklist-run",
   steps = {

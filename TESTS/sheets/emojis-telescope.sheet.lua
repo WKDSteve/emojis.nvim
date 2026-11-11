@@ -3,6 +3,7 @@
 -- beside this repository, pinned as in cmdlog.nvim.
 return {
   id = "emojis.telescope",
+  feature = "emojis.insert",
   title = "emojis.nvim: :Emojis insert in Telescope finds by a name fragment and inserts at the cursor",
   task = "emojis.nvim/manual-checklist-run",
   sizes = { { rows = 40, cols = 120 } },

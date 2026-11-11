@@ -5,6 +5,7 @@
 -- Each command is typed through the real `:Emojis` composer; the buffer is the verdict.
 return {
   id = "emojis.text-ops",
+  feature = "emojis.text-ops",
   title = "emojis.nvim: :Emojis clear, count, list, replace, wrap, toggle, first, next",
   task = "emojis.nvim/manual-checklist-run",
   engine = "rpc",

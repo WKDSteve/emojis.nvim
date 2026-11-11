@@ -2,6 +2,7 @@
 -- section 7 of ALL/manual-test-checklists/emojis.md). CI checks cascade.nvim out beside this repository.
 return {
   id = "emojis.cascade",
+  feature = "emojis.cascade",
   title = "emojis.nvim: cascade's <C-y> and <C-x> land on the same glyph as :Emojis toggle",
   task = "emojis.nvim/manual-checklist-run",
   requires = {

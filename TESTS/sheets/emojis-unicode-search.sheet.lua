@@ -2,6 +2,7 @@
 -- (task emojis.nvim/testblatt-bindings-checkliste; section 9 of ALL/manual-test-checklists/emojis.md).
 return {
   id = "emojis.unicode-search",
+  feature = "emojis.unicode",
   title = "emojis.nvim: :Emojis unicode search by name and by code, its bang, table, digraphs",
   task = "emojis.nvim/manual-checklist-run",
   steps = {

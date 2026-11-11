@@ -3,6 +3,7 @@
 -- emojis-pickers.sheet.lua. Frecency is off, so that the order of the grid is the configured one.
 return {
   id = "emojis.overlay",
+  feature = "emojis.overlay",
   title = "emojis.nvim: :Emojis overlay moves with hjkl and the arrows, the list has a row per glyph",
   task = "emojis.nvim/manual-checklist-run",
   requires = {

@@ -3,6 +3,7 @@
 -- once, so the scratch configs of the section go through `emojis.config.setup`, the part of it that reads default_set.
 return {
   id = "emojis.toggle",
+  feature = "emojis.checkboxes",
   title = "emojis.nvim: :Emojis toggle with a range, a set name and checkbox.default_set",
   task = "emojis.nvim/manual-checklist-run",
   steps = {

@@ -2,6 +2,7 @@
 -- ALL/manual-test-checklists/emojis.md). Frecency is on, the default; its file is a temp file (TESTS/minimal_init.lua).
 return {
   id = "emojis.frecency",
+  feature = "emojis.frecency",
   title = "emojis.nvim: a glyph used often moves to the front, and nothing else joins the overlay",
   task = "emojis.nvim/manual-checklist-run",
   requires = {

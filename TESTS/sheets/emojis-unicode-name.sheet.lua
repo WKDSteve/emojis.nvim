@@ -2,6 +2,7 @@
 -- ALL/manual-test-checklists/emojis.md). `curl` is what leaves the machine: it answers with a sample of the real file.
 return {
   id = "emojis.unicode-name",
+  feature = "emojis.unicode",
   title = "emojis.nvim: :Emojis unicode name, the catalog offline, the first download, the cache, the registers",
   task = "emojis.nvim/manual-checklist-run",
   steps = {
