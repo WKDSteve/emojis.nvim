@@ -5,8 +5,8 @@
 -- offset while the glyph is 3-4 bytes wide, so an off-by-one lands the glyph
 -- inside the previous character and produces mojibake instead of a crash.
 --
--- The frecency store is redirected to a temp file by run.lua, so recording a
--- use here never touches the developer's real history.
+-- The frecency store is redirected to a temp file by TESTS/minimal_init.lua,
+-- so recording a use here never touches the developer's real history.
 
 return function(H)
   local eq = H.eq

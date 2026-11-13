@@ -6,9 +6,9 @@
 -- file degrades to 'no usage recorded yet' rather than erroring, because
 -- losing a usage histogram must never break emoji insertion" (module doc).
 --
--- Every case redirects the store into a temp file first. The path run.lua set
--- is restored at the end, so the specs after this one keep writing there and
--- never touch the developer's real history.
+-- Every case redirects the store into a temp file first. The temp path
+-- TESTS/minimal_init.lua set is restored at the end, so whatever runs after
+-- this one keeps writing there and never touches the developer's real history.
 
 return function(H)
   local eq, ok = H.eq, H.ok
@@ -46,7 +46,7 @@ return function(H)
   end
 
   -- ------------------------------------------------------------------- path
-  -- The default location, on a module instance that run.lua has not redirected.
+  -- The default location, on a module instance that minimal_init.lua has not redirected.
   do
     local real = package.loaded["emojis.overlay.frecency"]
     package.loaded["emojis.overlay.frecency"] = nil

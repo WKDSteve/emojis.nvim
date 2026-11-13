@@ -62,7 +62,7 @@ never mutates the developer's real usage history under `stdpath("data")`.
 | --- | --- |
 | `harness.lua` | Shared assertions (`eq`, `ok`), the assertion counter, `scratch(ft)` buffers, and `notices(fn)` — which captures what `emojis.util.notify` said. |
 | `minimal_init.lua` | Runtimepath and dependency lookup (fatal when one is missing), frecency store redirection (the fake clipboard comes from testing.nvim). |
-| `run.lua` | Former runner; testing.nvim still reads its `specs` list for the run order (the suite is order-dependent). |
+| `run.lua` | Former runner, still usable standalone (one nvim for all specs, where the order matters); testing.nvim reads its `specs` list only as an order hint and runs every spec file in its own nvim (`isolated = "file"`). |
 | `patterns_spec.lua` | Tokenizer: base matching, VS16, skin tone, ZWJ chains, flag pairing, `match_at` anchoring, `encode`/`codepoint` round-trips. |
 | `ops_spec.lua` | `clear`/`replace`/`unreplace`/`wrap`/`count`/`list` on string arrays: space-collapse rules, stray VS16, default arguments, unknown `:token:` handling. |
 | `checkbox_spec.lua` | Checkbox cycle/add/remove: line-scoped find, wrap in both directions, ambiguous-set resolution, indentation, VS16 glyphs. |
@@ -178,7 +178,7 @@ ripgrep-present/-absent pair just above it already does.
 
 Create `<name>_spec.lua` returning `function(H) … end` (use `H.eq` / `H.ok` /
 `H.scratch` / `H.notices`) and add its filename to the `specs` list in
-`run.lua` (it fixes the run order).
+`run.lua` (its standalone loop refuses a spec that is not listed there).
 
 Two house rules the existing specs follow:
 

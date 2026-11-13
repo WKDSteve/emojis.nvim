@@ -1,7 +1,9 @@
 -- TESTS/run.lua — headless test runner for emojis.nvim.
--- NOTE: the suite is run by testing.nvim (scripts/test.sh); this file stays because testing.nvim takes the
--- run order from the `specs` list below (alphabetical order turns commands_spec.lua red). It also works standalone
--- (`nvim -n -i NONE --headless -u NONE -l TESTS/run.lua`: it loads minimal_init.lua itself).
+-- NOTE: the suite is run by testing.nvim (scripts/test.sh). testing.nvim never executes this file; it reads the
+-- `specs` list below as an order hint and the sentinel. With `isolated = "file"` (.testing.lua) every spec file runs
+-- in its own nvim, so the order does not change a result there (commands_spec.lua, red in alphabetical order when
+-- all specs shared one nvim, passes alone). It matters for this file's own one-process loop, which still works
+-- standalone (`nvim -n -i NONE --headless -u NONE -l TESTS/run.lua`: it loads minimal_init.lua itself).
 --
 -- Run from the repo root:
 --   nvim -n -i NONE --headless -u NONE -c "set rtp+=." -c "luafile TESTS/run.lua" -c "qa!"
