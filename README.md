@@ -87,3 +87,19 @@ each page answers.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+<!-- connections:begin (written by the app-icons tool of the workshop; change integrations.json there, not this block) -->
+## Connections
+
+![emojis.nvim: what it uses and what uses it](assets/graphs/emojis.nvim.png)
+
+**Uses**
+
+- [cascade.nvim](https://github.com/WKDSteve/cascade.nvim): emojis.nvim hands out `cascade_groups()` that can feed the cycle groups of cascade.nvim; its health check says whether cascade.nvim is there. ([picture](assets/graphs/pair/emojis.nvim--cascade.nvim.png))
+- [ui.nvim](https://github.com/WKDSteve/ui.nvim): The `:Emojis` overlay is drawn with the kit of ui.nvim (`ui.kit`); without it there is no overlay. ([picture](assets/graphs/pair/emojis.nvim--ui.nvim.png))
+- [lib.nvim](https://github.com/WKDSteve/lib.nvim): the shared base of the plugins.
+
+**Used by**
+
+- [ui.nvim](https://github.com/WKDSteve/ui.nvim): The menu of ui.nvim opens the unicode table of emojis.nvim (`emojis.unicode`). ([picture](assets/graphs/pair/ui.nvim--emojis.nvim.png))
+<!-- connections:end -->
