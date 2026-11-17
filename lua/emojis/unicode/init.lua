@@ -263,54 +263,25 @@ function M.search(query, insert)
   end)
 end
 
----Show `lines` in a named scratch buffer, split-opened. If a buffer with
----that name already exists (from an earlier call in this session), reuses
----it -- jumping straight to its window if it still has one, else opening it
----in a new split -- instead of creating a second buffer under the same
----name. `nvim_buf_set_name` raises E95 ("buffer already exists") on a name
----collision, so without this a second call would silently end up with an
----unnamed buffer (the failure is easy to swallow in a pcall and easy to
----miss), which then desyncs any caller that looks this buffer up by name
----(e.g. the nvim-config custom menu's window-styling step).
+---Show `lines` in a named scratch buffer, split-opened, through
+---`lib.nvim.window.open_named_scratch`: a second call reuses the buffer (and
+---its window, if it still has one) instead of colliding on the name, and
+---refreshes its content.
+---
+---The buffer is found by its **exact** name. This used to be a local copy
+---built on `vim.fn.bufnr(name)`, which is a file pattern: with no buffer named
+---exactly "Digraphs", an open `notes/Digraphs.md` was a unique partial match,
+---and that file was shown instead of the table. lib.nvim matches exactly since
+---lib.nvim@dfa3821.
 ---@param name string
 ---@param lines string[]
 ---@return nil
 ---@internal
 local function open_named_scratch(name, lines)
-  local existing = vim.fn.bufnr(name)
-  if existing ~= -1 and vim.api.nvim_buf_is_valid(existing) then
-    local win = vim.fn.bufwinid(existing)
-    if win ~= -1 then
-      vim.api.nvim_set_current_win(win)
-      return
-    end
-    local ok = pcall(vim.cmd.split)
-    if not ok then
-      notify.error(("could not open a window for %q (not enough room?)"):format(name))
-      return
-    end
-    vim.api.nvim_win_set_buf(0, existing)
-    return
-  end
-
-  local buf = vim.api.nvim_create_buf(false, true)
-  vim.bo[buf].buftype = "nofile"
-  vim.bo[buf].bufhidden = "wipe"
-  vim.bo[buf].swapfile = false
-  pcall(vim.api.nvim_buf_set_name, buf, name)
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-  vim.bo[buf].modifiable = false
-
-  local ok = pcall(vim.cmd.split)
+  local ok = pcall(require("lib.nvim.window.open_named_scratch"), name, lines, { modifiable = false })
   if not ok then
-    -- Never shown in a window, so bufhidden="wipe" never fires for it --
-    -- delete it explicitly rather than leaking a named buffer that the
-    -- next call would then collide with.
     notify.error(("could not open a window for %q (not enough room?)"):format(name))
-    pcall(vim.api.nvim_buf_delete, buf, { force = true })
-    return
   end
-  vim.api.nvim_win_set_buf(0, buf)
 end
 
 ---Open a scratch buffer listing the full loaded name table, one line per

@@ -297,4 +297,35 @@ return function(H)
 
     pcall(vim.api.nvim_buf_delete, buf1, { force = true })
   end
+
+  -- digraphs_open(): the buffer is found by its exact name. `bufnr("Digraphs")` is a file pattern, and an open
+  -- `notes/Digraphs.md` was a unique partial match: that file was shown instead of the table, its content untouched.
+  do
+    local dir = vim.fn.tempname()
+    vim.fn.mkdir(dir .. "/notes", "p")
+    local note = dir .. "/notes/Digraphs.md"
+    vim.fn.writefile({ "# my notes" }, note)
+    vim.cmd("edit " .. vim.fn.fnameescape(note))
+    local note_buf = vim.api.nvim_get_current_buf()
+    ok(vim.fn.bufexists("Digraphs") == 0, "digraphs_open: only the note is there, no buffer named Digraphs")
+
+    unicode.digraphs_open()
+    local table_buf = vim.api.nvim_get_current_buf()
+    ok(table_buf ~= note_buf, "digraphs_open: a file whose name contains Digraphs is not shown")
+    eq(vim.fn.bufname(table_buf), "Digraphs", "digraphs_open: the table has its own buffer")
+    ok(vim.api.nvim_buf_get_lines(table_buf, 0, 1, false)[1]:find("->", 1, true), "digraphs_open: it holds the table")
+    eq(
+      table.concat(vim.api.nvim_buf_get_lines(note_buf, 0, -1, false), "|"),
+      "# my notes",
+      "digraphs_open: the note is untouched"
+    )
+
+    unicode.digraphs_open()
+    eq(vim.api.nvim_get_current_buf(), table_buf, "digraphs_open: the second call takes its own buffer")
+
+    vim.cmd("only")
+    pcall(vim.api.nvim_buf_delete, table_buf, { force = true })
+    pcall(vim.api.nvim_buf_delete, note_buf, { force = true })
+    vim.fn.delete(dir, "rf")
+  end
 end
