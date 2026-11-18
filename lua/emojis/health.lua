@@ -57,6 +57,20 @@ function M.check()
     vim.health.info("neither telescope.nvim nor fzf-lua found — insert picker uses vim.ui.select")
   end
 
+  -- One usage store feeds both: switching off one of them leaves the recording on, which surprises a user who
+  -- set `overlay.frecency = false` before `picker.frecency` existed.
+  local overlay_frec = cfg.overlay.frecency == true
+  local picker_frec = type(cfg.picker) == "table" and cfg.picker.frecency == true
+  if overlay_frec ~= picker_frec then
+    vim.health.info(
+      ("usage is still recorded (frecency.json): %s.frecency is on, %s.frecency is off"):format(
+        picker_frec and "picker" or "overlay",
+        picker_frec and "overlay" or "picker"
+      ),
+      { "set both overlay.frecency and picker.frecency to false to stop the recording" }
+    )
+  end
+
   local cmd = cfg.search.cmd
   if vim.fn.executable(cmd) == 1 then
     vim.health.ok(("'%s' found on PATH (cwd scope: list/count/clear/replace)"):format(cmd))

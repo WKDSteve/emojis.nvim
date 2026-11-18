@@ -135,8 +135,10 @@ search terms, the optional third field of an entry. The built-in catalog
 gives every glyph English and German terms, plus the terms of its section, so
 `ampel` finds the traffic-light circles, `pfeil` every arrow, `haken` the
 check marks. A German word with an umlaut is also indexed in its ASCII
-spelling (`gruen`, `weiss`), so a prompt without umlauts still finds it. The
-terms are shown after a `·`; your own entries may add them too:
+spelling (`gruen`, `weiss`), so a prompt without umlauts still finds it. A
+row's own terms are shown after a `·` (the section words and ASCII spellings
+are searched but not shown, to keep the list short); your own entries may add
+terms too, and an optional fourth field replaces what is shown:
 
 ```lua
 picks = {
@@ -160,7 +162,11 @@ small bonus — 0.25 for one occurrence, 0.1 more for each further one, capped
 at 0.75 — and one `picks` lacks joins the list (labelled from `names`, else
 `in_buffer`). The cap stays below one real insertion, so your own usage keeps
 the upper hand; the file only adds its own vocabulary, such as the
-🟢/🟡/🔴 status marks of a notes file. Nothing of this is stored.
+🟢/🟡/🔴 status marks of a notes file. Besides emoji, the catalog's text
+characters count (`→ ⇒ ↳ © •`). Nothing of this is stored.
+
+`:checkhealth emojis` says so when only one of `overlay.frecency` and
+`picker.frecency` is off: the usage is still recorded then.
 
 The overlay is drawn with [`lib.nvim`](https://github.com/WKDSteve/lib.nvim)'s
 `ui.kit`, so `theme` accepts any kit theme argument — a preset name

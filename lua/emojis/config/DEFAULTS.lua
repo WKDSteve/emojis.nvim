@@ -19,7 +19,7 @@ local CATALOG = require("emojis.catalog").entries()
 local picks, names = {}, {}
 for i = 1, #CATALOG do
   local glyph, label = CATALOG[i][1], CATALOG[i][2]
-  picks[i] = { glyph, label, CATALOG[i][3] }
+  picks[i] = { glyph, label, CATALOG[i][3], CATALOG[i][4] }
   names[patterns.codepoint(glyph)] = ":" .. label .. ":"
 end
 

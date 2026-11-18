@@ -249,5 +249,17 @@ return function(H)
     ok(said(rec, "info", "plugin guard") or said(rec, "ok", "plugin loaded"), "...and the report reaches its end")
   end
 
+  -- Usage recording: one of the two frecency options off still records, and the report says so.
+  do
+    config.setup({})
+    ok(not said(report(), "info", "usage is still recorded"), "frecency: both on, no hint")
+    config.setup({ overlay = { frecency = false } })
+    ok(said(report(), "info", "picker.frecency is on, overlay.frecency is off"), "frecency: overlay off alone is named")
+    config.setup({ picker = { frecency = false } })
+    ok(said(report(), "info", "overlay.frecency is on, picker.frecency is off"), "frecency: picker off alone is named")
+    config.setup({ overlay = { frecency = false }, picker = { frecency = false } })
+    ok(not said(report(), "info", "usage is still recorded"), "frecency: both off, no hint")
+  end
+
   config.setup({})
 end

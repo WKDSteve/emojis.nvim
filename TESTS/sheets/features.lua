@@ -30,8 +30,14 @@ return {
   },
   {
     id = "emojis.insert",
-    title = ":Emojis insert finds a glyph by a name fragment in a picker and inserts it at the cursor",
-    surface = { "command:Emojis insert", "binding:<C-e>", "config:picker.engine" },
+    title = ":Emojis insert finds a glyph by a name fragment or a German term and inserts it at the cursor",
+    surface = {
+      "command:Emojis insert",
+      "binding:<C-e>",
+      "config:picker.engine",
+      "config:picker.frecency",
+      "config:picker.buffer_boost",
+    },
     docs = "docs/FEATURES.md",
   },
   {

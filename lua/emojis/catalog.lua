@@ -555,14 +555,16 @@ local FOLD = { ["ä"] = "ae", ["ö"] = "oe", ["ü"] = "ue", ["ß"] = "ss" }
 ---@type table<string, string>  The capital umlauts, which `string.lower` leaves alone (it is byte-wise).
 local LOWER = { ["Ä"] = "ä", ["Ö"] = "ö", ["Ü"] = "ü" }
 
----Search words of `text` plus, for each word with an umlaut or ß, its ASCII
----spelling, appended to `out` without repeating a word already in `seen`.
+---Search words of `text` plus (with `fold`), for each word with an umlaut or
+---ß, its ASCII spelling, appended to `out` without repeating a word already in
+---`seen`.
 ---@param text string|nil
 ---@param out string[]
 ---@param seen table<string, boolean>
+---@param fold boolean
 ---@return nil
 ---@internal
-local function add_words(text, out, seen)
+local function add_words(text, out, seen, fold)
   if type(text) ~= "string" then
     return
   end
@@ -571,7 +573,7 @@ local function add_words(text, out, seen)
       seen[word] = true
       out[#out + 1] = word
     end
-    local ascii = word:gsub("\195[\164\182\188\159]", FOLD)
+    local ascii = fold and word:gsub("\195[\164\182\188\159]", FOLD) or word
     if ascii ~= word and not seen[ascii] then
       seen[ascii] = true
       out[#out + 1] = ascii
@@ -585,25 +587,33 @@ end
 ---@param label string
 ---@param row {[3]: string?, [4]: string?}
 ---@param section? Emojis.Catalog.Section
+---@param shown? boolean  only what the picker displays: no section words, no ASCII spellings
 ---@return string
-function M.keywords(label, row, section)
+function M.keywords(label, row, section, shown)
   local seen = {}
   for part in label:gmatch("[^_]+") do
     seen[part] = true
   end
   local out = {}
-  add_words(row[3], out, seen)
-  add_words(row[4], out, seen)
-  add_words(section and section.en, out, seen)
-  add_words(section and section.de, out, seen)
+  local fold = not shown
+  add_words(row[3], out, seen, fold)
+  add_words(row[4], out, seen, fold)
+  if not shown then
+    add_words(section and section.en, out, seen, fold)
+    add_words(section and section.de, out, seen, fold)
+  end
   return table.concat(out, " ")
 end
 
 ---@type Emojis.Config.PickEntry[]|nil
 local _entries = nil
 
----The whole catalog as flat `{ glyph, label, keywords }` rows, in section
----order. Built once; callers must not mutate the result (DEFAULTS copies it).
+---The whole catalog as flat `{ glyph, label, keywords, shown }` rows, in
+---section order. `keywords` is what the picker searches (the row's and its
+---section's words); `shown` only the row's own, what the picker displays, so
+---"status signal zustand" is not repeated on every line of a section, and
+---without the ASCII spellings of umlaut words. Built once; callers must not
+---mutate the result (DEFAULTS copies it).
 ---@return Emojis.Config.PickEntry[]
 function M.entries()
   if _entries then
@@ -614,7 +624,7 @@ function M.entries()
     local section = SECTIONS[s]
     for r = 1, #section do
       local row = section[r]
-      out[#out + 1] = { row[1], row[2], M.keywords(row[2], row, section) }
+      out[#out + 1] = { row[1], row[2], M.keywords(row[2], row, section), M.keywords(row[2], row, nil, true) }
     end
   end
   _entries = out

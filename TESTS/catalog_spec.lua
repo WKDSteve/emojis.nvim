@@ -131,6 +131,13 @@ return function(H)
   ok(has_term("white_circle", "weiss"), "terms: ß folds to ss")
   ok(not has_term("red_circle", "red"), "terms: a word of the label is not repeated")
 
+  -- [4], what the picker shows: the row's own words, without section words and ASCII spellings.
+  local shown = " " .. by_label["green_circle"][4] .. " "
+  ok(shown:find(" grün ", 1, true) ~= nil, "shown: the row's own German word")
+  ok(shown:find(" gruen ", 1, true) == nil, "shown: no ASCII spelling")
+  ok(shown:find(" ampel ", 1, true) == nil, "shown: no section word")
+  eq(by_label["cool"][4], "", "shown: empty when the row has nothing beyond its label")
+
   -- keywords(): the flattening on its own.
   eq(
     catalog.keywords("a_b", { "x", "a_b", "b C", "Über b" }, { en = "c", de = "d" }),

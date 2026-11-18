@@ -164,7 +164,8 @@ picker.frecency ~
 picker.buffer_boost ~
   When `true`, a glyph that already occurs in the buffer you insert into
   (first 3000 lines) gets a small bonus in `:Emojis insert`, capped below one
-  real use, and one `picks` lacks joins the list. Nothing is stored.
+  real use, and one `picks` lacks joins the list. Emoji and the catalog's
+  text characters (`→ ⇒ ↳ © •`) count. Nothing is stored.
   Default: `true`.
 
 names ~

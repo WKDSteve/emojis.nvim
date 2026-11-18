@@ -32,7 +32,7 @@ local USED_TERMS = "used recent zuletzt verwendet benutzt"
 ---@return string
 ---@internal
 local function display_of(entry)
-  local terms = entry[3]
+  local terms = entry[4] or entry[3]
   if type(terms) == "string" and terms ~= "" then
     return entry[1] .. "  " .. entry[2] .. "  · " .. terms
   end
@@ -68,10 +68,13 @@ local BUFFER_BONUS_MAX = 0.75
 
 ---How often each emoji occurs in the first BUFFER_SCAN_LINES lines of `buf`,
 ---per `frecency.key`, with the spelling seen first, and the keys in the order
----of their first occurrence (so ties rank the same way every time). Only positions holding an
----emoji lead byte are tried (0xE2 for U+2300-2BFF, 0xF0 for the U+1Fxxx
----plane), so a long line of plain text costs one pattern search, not a match
----attempt per byte.
+---of their first occurrence (so ties rank the same way every time).
+---
+---Counted are emoji (`patterns.match_at`) and the catalog's other characters,
+---those with a `names` entry outside the emoji ranges: the text arrows `→ ⇒ ↳`,
+---`©`, `•`. Only positions holding one of their lead bytes are tried (0xC2,
+---0xE2, 0xF0), so a long line of plain text costs one pattern search, not a
+---match attempt per byte.
 ---@param buf integer
 ---@return table<string, integer> counts, table<string, string> glyphs, string[] order
 function M.buffer_counts(buf)
@@ -81,16 +84,26 @@ function M.buffer_counts(buf)
   end
   local patterns = require("emojis.core.patterns")
   local key = require("emojis.overlay.frecency").key
+  local names = config.get().names
+  names = type(names) == "table" and names or {}
   local lines = vim.api.nvim_buf_get_lines(buf, 0, BUFFER_SCAN_LINES, false)
   for l = 1, #lines do
     local line = lines[l]
     local from = 1
     while true do
-      local pos = line:find("[\226\240]", from)
+      local pos = line:find("[\194\226\240]", from)
       if not pos then
         break
       end
       local e = patterns.match_at(line, pos)
+      if not e then
+        -- Not an emoji: one 2-byte (0xC2) or 3-byte (0xE2) character of the catalog, or nothing.
+        local last = pos + (line:byte(pos) == 194 and 1 or 2)
+        local ok, cp = pcall(patterns.codepoint, line:sub(pos, last))
+        if ok and cp and names[cp] then
+          e = last
+        end
+      end
       if e then
         local glyph = line:sub(pos, e)
         local k = key(glyph)

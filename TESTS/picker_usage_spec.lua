@@ -95,6 +95,14 @@ return function(H)
       end
     end
     ok(#hits >= 20, "catalog: 'pfeil' finds the arrows")
+
+    -- The display leaves the section words out (searched, not repeated on every line).
+    config.setup({ picker = { engine = "select", frecency = false, buffer_boost = false } })
+    local items = select_items()
+    local first = items[1]
+    eq(first:find("white_check_mark", 1, true) ~= nil, true, "display: the catalog's first glyph first")
+    eq(first:find("zustand", 1, true), nil, "display: the section words are not shown")
+    ok(first:find("erledigt", 1, true) ~= nil, "display: the row's own German terms are")
   end
 
   -- ------------------------------------------------------------------ usage
@@ -209,6 +217,18 @@ return function(H)
     eq(counts["⚠"], 1, "buffer_counts: keyed without VS16")
     eq(seen["⛅"], "⛅", "buffer_counts: the spelling found")
     eq(counts["ä"], nil, "buffer_counts: letters are no emoji")
+
+    -- The catalog's text characters outside the emoji ranges count too, other symbols do not.
+    local text = H.scratch()
+    vim.api.nvim_buf_set_lines(text, 0, -1, false, { "a → b → c ⇒ d", "↳ sub", "© 2026 · ¶ ≈ “quoted”" })
+    local tc = picker.buffer_counts(text)
+    eq(tc["→"], 2, "buffer_counts: a text arrow of the catalog")
+    eq(tc["⇒"], 1, "buffer_counts: another one")
+    eq(tc["↳"], 1, "buffer_counts: at the start of a line")
+    eq(tc["©"], 1, "buffer_counts: a 2-byte character of the catalog")
+    eq(tc["·"], nil, "buffer_counts: a 2-byte character outside the catalog")
+    eq(tc["≈"], nil, "buffer_counts: a 3-byte character outside the catalog")
+    eq(tc["“"], nil, "buffer_counts: typographic quotes are no glyph")
 
     local entries = picker.entries(PICKS, buf)
     eq(glyphs(entries), "🟢⛅⚠🔴🚀", "entries: buffer glyphs first, more occurrences first, picks after")

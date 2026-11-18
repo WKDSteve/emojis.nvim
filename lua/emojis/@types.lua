@@ -57,7 +57,8 @@
 ---@class Emojis.Config.PickEntry
 ---@field [1] string  The emoji glyph
 ---@field [2] string  Short label shown in the picker
----@field [3]? string Extra search terms (space-separated, e.g. German words), shown dimmed
+---@field [3]? string Extra search terms (space-separated, e.g. German words), shown after a dot
+---@field [4]? string The part of [3] to show instead of all of it (the catalog leaves out its section words)
 
 ---@class Emojis.Config.Search
 ---@field cmd        string    External search binary (default "rg")
