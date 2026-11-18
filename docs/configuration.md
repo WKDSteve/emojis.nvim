@@ -149,8 +149,8 @@ recorded usage, and the store learns from more than insertions: a checkbox
 state `:Emojis toggle`/`add` leaves in the buffer counts half a use, a glyph
 looked up with `:Emojis unicode name` or `unicode search` half a use, one
 inserted with `unicode search!` a full one. A glyph used that way that is not
-in `picks` is offered on top of the list (labelled from `names`, else
-`used`). `⚠` and `⚠️` (with and without VS16) count as one glyph. Recording
+in `picks` joins the list and ranks by its usage among the picks (labelled
+from `names`, else `used`). `⚠` and `⚠️` (with and without VS16) count as one glyph. Recording
 stays on while `overlay.frecency` or `picker.frecency` is `true`.
 
 The overlay is drawn with [`lib.nvim`](https://github.com/WKDSteve/lib.nvim)'s

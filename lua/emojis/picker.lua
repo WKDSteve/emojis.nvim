@@ -51,8 +51,10 @@ local function ordinal_of(entry)
   return entry[2]
 end
 
----The picks the picker shows: `picks` ordered by recorded usage, preceded by
----each used glyph `picks` does not have (labelled from `names`, else "used").
+---The picks the picker shows: `picks` plus each used glyph `picks` does not
+---have (labelled from `names`, else "used"), ordered by recorded usage. A used
+---glyph from outside ranks by its score among the picks rather than jumping
+---ahead of all of them; on a tie the picks come first, in their own order.
 ---Without `picker.frecency`, `picks` unchanged.
 ---@param picks Emojis.Config.PickEntry[]
 ---@return Emojis.Config.PickEntry[]
@@ -69,6 +71,9 @@ function M.entries(picks)
   end
 
   local out = {}
+  for i = 1, #picks do
+    out[i] = picks[i]
+  end
   local used = frecency.used()
   local patterns = require("emojis.core.patterns")
   for i = 1, #used do
@@ -81,11 +86,7 @@ function M.entries(picks)
     end
   end
 
-  local sorted = frecency.sort(picks)
-  for i = 1, #sorted do
-    out[#out + 1] = sorted[i]
-  end
-  return out
+  return frecency.sort(out)
 end
 
 ---Try the telescope.nvim picker. Returns true if it took over.

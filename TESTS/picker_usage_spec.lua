@@ -106,14 +106,15 @@ return function(H)
     frecency.record("🚀")
     eq(glyphs(picker.entries(PICKS)), "🚀🔴🟢", "entries: a used glyph moves to the front")
 
-    -- A glyph used outside the picker's list joins it, labelled from `names` or "used".
+    -- A glyph used outside the picker's list joins it, labelled from `names` or "used",
+    -- and ranks by its score among the picks instead of jumping ahead of all of them.
     frecency.record("🦀", 2)
     frecency.record("ⓧ", 0.5)
     local entries = picker.entries(PICKS)
-    eq(glyphs(entries), "🦀ⓧ🚀🔴🟢", "entries: used glyphs outside picks come first, by score")
+    eq(glyphs(entries), "🦀🚀ⓧ🔴🟢", "entries: used glyphs from outside rank by score among the picks")
     eq(entries[1][2], "crab", "entries: labelled from names when it has one")
-    eq(entries[2][2], "used", "entries: else labelled 'used'")
-    ok(entries[2][3]:find("zuletzt", 1, true) ~= nil, "entries: findable as recently used, in German too")
+    eq(entries[3][2], "used", "entries: else labelled 'used'")
+    ok(entries[3][3]:find("zuletzt", 1, true) ~= nil, "entries: findable as recently used, in German too")
 
     -- A spelling without VS16 is the catalog's glyph, not a second entry.
     frecency.reset()

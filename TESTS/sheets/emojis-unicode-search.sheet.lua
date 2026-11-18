@@ -20,8 +20,9 @@ return {
     { expect = [[_G.noted("U+1F680  🚀  ROCKET") and _G.text() == "x"]], note = "picking reports, the buffer stays" },
     { keys = ":Emojis unicode search SnOw<CR>" },
     {
-      expect = [[#_G.offered == 3 and _G.offered[1]:find("SNOWMAN", 1, true) and _G.offered[3]:find("SNOWFLAKE", 1, true)]],
-      note = "every character whose name holds it, in any case",
+      expect = [[#_G.offered == 4 and _G.offered[1]:find("SNOWMAN", 1, true) and _G.offered[3]:find("SNOWFLAKE", 1, true)
+        and _G.offered[4]:find("MOUNTAIN SNOW", 1, true)]],
+      note = "every character whose name holds it, in any case: three of the sample, one of the catalog (mountain_snow)",
     },
 
     -- `_G.offered` is forgotten before each one: a search that offers nothing must not pass on the previous answer

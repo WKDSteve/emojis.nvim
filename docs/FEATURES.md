@@ -120,7 +120,7 @@ the ASCII spelling of umlauts), which every engine matches and shows after a
 uses from other commands count too: `toggle`/`add` (the state left in the
 buffer), `unicode name` and `unicode search` (a look, half a use) and
 `unicode search!` (an insertion). Glyphs used that way outside the catalog
-are offered on top.
+join the list, ranked by their usage.
 
 - **Module:** `lua/emojis/picker.lua`
 - **Usercmds:** `:Emojis insert`
