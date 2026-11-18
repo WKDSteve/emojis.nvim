@@ -11,7 +11,10 @@ return {
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")
-      require("emojis").setup({ picker = { engine = "select", frecency = false, buffer_boost = false }, picks = { { "🍕", "pizza" } } })
+      require("emojis").setup({
+        picker = { engine = "select", frecency = false, buffer_boost = false },
+        picks = { { "🍕", "pizza" } },
+      })
       _G.grid = function()
         local out = {}
         for _, l in ipairs(vim.api.nvim_buf_get_lines(0, 0, -1, false)) do
@@ -20,7 +23,8 @@ return {
         return out
       end
       _G.set("x")]],
-      note = "the insert picker offers only a glyph the overlay does not have (picker.frecency and buffer_boost off: either would add 🎉)",
+      note = "the insert picker offers only a glyph the overlay does not have"
+        .. " (picker.frecency and buffer_boost off: either would add 🎉)",
     },
     { keys = ":Emojis overlay<CR>" },
     { wait = "_G.floats() > 0" },
