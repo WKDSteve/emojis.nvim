@@ -177,6 +177,20 @@ return function(H)
     end)
     eq(frecency.used()[1], "🦀", "unicode name: the looked-up glyph is recorded")
     frecency.reset()
+
+    -- A letter is no emoji and not in the catalog: it stays out of the picker.
+    local data_mod = require("emojis.unicode.data")
+    local real_ensure = data_mod.ensure
+    data_mod.ensure = function()
+      return { by_cp = {}, list = {}, ranges = {} }
+    end
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "ß" })
+    vim.api.nvim_win_set_cursor(0, { 1, 0 })
+    H.notices(function()
+      require("emojis.unicode").name_at_cursor()
+    end)
+    data_mod.ensure = real_ensure
+    eq(#frecency.used(), 0, "unicode name: a looked-up letter is not recorded")
   end
 
   frecency.set_path(suite_path)

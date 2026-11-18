@@ -114,6 +114,22 @@ local REGISTER_TYPES = {
 ---@type number  Weight of a use that only looked a glyph up (see emojis.overlay.frecency).
 local LOOKUP_WEIGHT = 0.5
 
+---Count `glyph` as a use for the insert picker's ordering -- but only a glyph
+---that belongs in an emoji picker: an emoji, or a character of the catalog
+---(`names`, e.g. the text arrows). Looking up a `ß` or an `é` must not put it
+---on top of the emoji list.
+---@param glyph string
+---@param cp integer
+---@param weight? number
+---@return nil
+---@internal
+local function record_use(glyph, cp, weight)
+  local names = require("emojis.config").get().names
+  if patterns.match_at(glyph, 1) or (type(names) == "table" and names[cp] ~= nil) then
+    require("emojis.overlay.frecency").record(glyph, weight)
+  end
+end
+
 ---`:Emojis unicode name [reg [type]]` -- report the character under the
 ---cursor, optionally saving one representation (`type`, default "name")
 ---into register `reg`.
@@ -135,7 +151,7 @@ function M.name_at_cursor(reg, reg_type)
 
   local info = M.info(cp)
   -- Looking a glyph up is a weaker signal than inserting it: half a use for the picker's ordering.
-  require("emojis.overlay.frecency").record(ch, LOOKUP_WEIGHT)
+  record_use(ch, cp, LOOKUP_WEIGHT)
   local msg = ("%s  %s  %s"):format(info.hex, info.glyph, info.name or "(name unknown)")
   if info.name_err then
     msg = msg .. ("  [name lookup unavailable: %s]"):format(info.name_err)
@@ -260,12 +276,11 @@ function M.search(query, insert)
     if not choice then
       return
     end
-    local frecency = require("emojis.overlay.frecency")
     if insert then
       vim.api.nvim_put({ choice.glyph }, "c", true, true)
-      frecency.record(choice.glyph)
+      record_use(choice.glyph, choice.cp)
     else
-      frecency.record(choice.glyph, LOOKUP_WEIGHT)
+      record_use(choice.glyph, choice.cp, LOOKUP_WEIGHT)
       notify.info(("%s  %s  %s"):format(choice.hex, choice.glyph, choice.name or "(name unknown)"))
     end
   end)
