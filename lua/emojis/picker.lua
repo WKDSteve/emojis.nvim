@@ -51,42 +51,134 @@ local function ordinal_of(entry)
   return entry[2]
 end
 
----The picks the picker shows: `picks` plus each used glyph `picks` does not
----have (labelled from `names`, else "used"), ordered by recorded usage. A used
----glyph from outside ranks by its score among the picks rather than jumping
+---@type string  Search terms shown for a glyph that only the current buffer put in the list.
+local BUFFER_TERMS = "buffer file in text datei im text"
+
+---@type integer  Lines of the buffer the heuristic reads at most (from the top).
+local BUFFER_SCAN_LINES = 3000
+
+---@type number  Bonus of a glyph that occurs once in the buffer; each further occurrence adds BUFFER_BONUS_STEP.
+local BUFFER_BONUS_FIRST = 0.25
+
+---@type number
+local BUFFER_BONUS_STEP = 0.1
+
+---@type number  The cap: less than one real insertion (1), so the user's own usage keeps the upper hand.
+local BUFFER_BONUS_MAX = 0.75
+
+---How often each emoji occurs in the first BUFFER_SCAN_LINES lines of `buf`,
+---per `frecency.key`, with the spelling seen first, and the keys in the order
+---of their first occurrence (so ties rank the same way every time). Only positions holding an
+---emoji lead byte are tried (0xE2 for U+2300-2BFF, 0xF0 for the U+1Fxxx
+---plane), so a long line of plain text costs one pattern search, not a match
+---attempt per byte.
+---@param buf integer
+---@return table<string, integer> counts, table<string, string> glyphs, string[] order
+function M.buffer_counts(buf)
+  local counts, glyphs, order = {}, {}, {}
+  if type(buf) ~= "number" or not vim.api.nvim_buf_is_valid(buf) then
+    return counts, glyphs, order
+  end
+  local patterns = require("emojis.core.patterns")
+  local key = require("emojis.overlay.frecency").key
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, BUFFER_SCAN_LINES, false)
+  for l = 1, #lines do
+    local line = lines[l]
+    local from = 1
+    while true do
+      local pos = line:find("[\226\240]", from)
+      if not pos then
+        break
+      end
+      local e = patterns.match_at(line, pos)
+      if e then
+        local glyph = line:sub(pos, e)
+        local k = key(glyph)
+        if not counts[k] then
+          order[#order + 1] = k
+          glyphs[k] = glyph
+        end
+        counts[k] = (counts[k] or 0) + 1
+        from = e + 1
+      else
+        from = pos + 1
+      end
+    end
+  end
+  return counts, glyphs, order
+end
+
+---The label of a glyph that is not in `picks`: its `names` entry without the
+---colons, else `fallback`.
+---@param glyph string
+---@param names table<integer, string>|nil
+---@param fallback string
+---@return string
+---@internal
+local function label_of(glyph, names, fallback)
+  local ok, cp = pcall(require("emojis.core.patterns").codepoint, glyph)
+  local name = ok and cp and type(names) == "table" and names[cp] or nil
+  if type(name) == "string" then
+    return (name:gsub("^:", ""):gsub(":$", ""))
+  end
+  return fallback
+end
+
+---The picks the picker shows, best first:
+---  - `picker.frecency`: ordered by recorded usage, plus each used glyph
+---    `picks` lacks (labelled from `names`, else "used");
+---  - `picker.buffer_boost`: a glyph that occurs in `buf` gets a small bonus
+---    (BUFFER_BONUS_*, below one real use), and one `picks` lacks joins the
+---    list (labelled from `names`, else "in_buffer").
+---A glyph from outside ranks by its score among the picks rather than jumping
 ---ahead of all of them; on a tie the picks come first, in their own order.
----Without `picker.frecency`, `picks` unchanged.
+---With both options off, `picks` unchanged.
 ---@param picks Emojis.Config.PickEntry[]
+---@param buf? integer  the buffer the glyph goes into (default: none, no bonus)
 ---@return Emojis.Config.PickEntry[]
-function M.entries(picks)
+function M.entries(picks, buf)
   local cfg = config.get()
-  if not (type(cfg.picker) == "table" and cfg.picker.frecency) then
+  local picker_cfg = type(cfg.picker) == "table" and cfg.picker or {}
+  local use_usage = picker_cfg.frecency == true
+  local use_buffer = picker_cfg.buffer_boost == true and buf ~= nil
+  if not (use_usage or use_buffer) then
     return picks
   end
 
   local frecency = require("emojis.overlay.frecency")
   local known = {}
-  for i = 1, #picks do
-    known[frecency.key(picks[i][1])] = true
-  end
-
   local out = {}
   for i = 1, #picks do
+    known[frecency.key(picks[i][1])] = true
     out[i] = picks[i]
   end
-  local used = frecency.used()
-  local patterns = require("emojis.core.patterns")
-  for i = 1, #used do
-    local glyph = used[i]
-    if not known[frecency.key(glyph)] then
-      local ok, cp = pcall(patterns.codepoint, glyph)
-      local name = ok and cp and type(cfg.names) == "table" and cfg.names[cp] or nil
-      local label = type(name) == "string" and name:gsub("^:", ""):gsub(":$", "") or "used"
-      out[#out + 1] = { glyph, label, USED_TERMS }
+
+  if use_usage then
+    local used = frecency.used()
+    for i = 1, #used do
+      local k = frecency.key(used[i])
+      if not known[k] then
+        known[k] = true
+        out[#out + 1] = { used[i], label_of(used[i], cfg.names, "used"), USED_TERMS }
+      end
     end
   end
 
-  return frecency.sort(out)
+  local bonus = nil
+  if use_buffer then
+    bonus = {}
+    local counts, glyphs, order = M.buffer_counts(buf --[[@as integer]])
+    for _, k in ipairs(order) do
+      local n = counts[k]
+      bonus[k] = math.min(BUFFER_BONUS_MAX, BUFFER_BONUS_FIRST + BUFFER_BONUS_STEP * (n - 1))
+      if not known[k] then
+        known[k] = true
+        out[#out + 1] = { glyphs[k], label_of(glyphs[k], cfg.names, "in_buffer"), BUFFER_TERMS }
+      end
+    end
+  end
+
+  return frecency.rank(out, bonus, use_usage)
 end
 
 ---Try the telescope.nvim picker. Returns true if it took over.
@@ -215,7 +307,7 @@ function M.insert()
     return
   end
 
-  picks = M.entries(picks)
+  picks = M.entries(picks, vim.api.nvim_get_current_buf())
   local engine = config.get().picker.engine
 
   if engine == "select" then

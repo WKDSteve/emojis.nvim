@@ -194,6 +194,54 @@ return function(H)
     eq(#frecency.used(), 0, "unicode name: a looked-up letter is not recorded")
   end
 
+  -- --------------------------------------------------------- buffer heuristic
+  -- Glyphs already in the buffer the glyph goes into get a small bonus, and one
+  -- `picks` lacks joins the list.
+  do
+    config.setup({ picks = PICKS, picker = { frecency = false } })
+    frecency.reset()
+    local buf = H.scratch()
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "- 🟢 done", "- 🟢 also", "- ⛅ weather ⚠ bare", "plain text ä é" })
+
+    local counts, seen = picker.buffer_counts(buf)
+    eq(counts["🟢"], 2, "buffer_counts: every occurrence counted")
+    eq(counts["⛅"], 1, "buffer_counts: a glyph next to text")
+    eq(counts["⚠"], 1, "buffer_counts: keyed without VS16")
+    eq(seen["⛅"], "⛅", "buffer_counts: the spelling found")
+    eq(counts["ä"], nil, "buffer_counts: letters are no emoji")
+
+    local entries = picker.entries(PICKS, buf)
+    eq(glyphs(entries), "🟢⛅⚠🔴🚀", "entries: buffer glyphs first, more occurrences first, picks after")
+    eq(entries[2][2], "partly_sunny", "entries: a buffer glyph outside picks is labelled from names")
+    ok(entries[2][3]:find("datei", 1, true) ~= nil, "entries: and findable as in the file, in German too")
+    eq(glyphs(picker.entries(PICKS)), "🔴🟢🚀", "entries: no buffer, no bonus")
+
+    config.setup({ picks = PICKS, picker = { frecency = false, buffer_boost = false } })
+    ok(picker.entries(PICKS, buf) == PICKS, "entries: both options off hand picks over unchanged")
+  end
+
+  -- The bonus stays below one real use: an inserted glyph still wins over one
+  -- that only fills the buffer, however often.
+  do
+    config.setup({ picks = PICKS })
+    frecency.reset()
+    local buf = H.scratch()
+    local many = {}
+    for i = 1, 50 do
+      many[i] = "🔴"
+    end
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, many)
+    frecency.record("🚀")
+    eq(glyphs(picker.entries(PICKS, buf)), "🚀🔴🟢", "entries: a real use outranks the capped buffer bonus")
+    frecency.reset()
+  end
+
+  -- An invalid buffer is no buffer.
+  do
+    local counts = picker.buffer_counts(-12345)
+    eq(next(counts), nil, "buffer_counts: an invalid buffer counts nothing")
+  end
+
   frecency.set_path(suite_path)
   config.setup({})
 end

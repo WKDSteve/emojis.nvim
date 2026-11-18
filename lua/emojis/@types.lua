@@ -85,6 +85,7 @@
 ---@class Emojis.Config.Picker
 ---@field engine   Emojis.Config.Picker.Engine  Insert-picker engine (default "auto")
 ---@field frecency boolean  Order by recorded usage and offer used glyphs outside `picks` (default true)
+---@field buffer_boost boolean  Small bonus for glyphs in the current buffer, which also join the list (default true)
 
 ---@class Emojis.Config.Checkbox
 ---@field default_set string                    Set used by `:Emojis toggle` with no argument; "" = search all
@@ -155,6 +156,7 @@
 ---@class Emojis.Opts.Picker
 ---@field engine?   Emojis.Config.Picker.Engine  Insert-picker engine (default "auto")
 ---@field frecency? boolean  Order by recorded usage and offer used glyphs outside `picks` (default true)
+---@field buffer_boost? boolean  Small bonus for glyphs in the current buffer, which also join the list (default true)
 
 ---@class Emojis.Opts.Checkbox
 ---@field default_set? string                    Set used by `:Emojis toggle` with no argument; "" = search all

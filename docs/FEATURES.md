@@ -120,13 +120,16 @@ the ASCII spelling of umlauts), which every engine matches and shows after a
 uses from other commands count too: `toggle`/`add` (the state left in the
 buffer), `unicode name` and `unicode search` (a look, half a use) and
 `unicode search!` (an insertion). Glyphs used that way outside the catalog
-join the list, ranked by their usage.
+join the list, ranked by their usage. With `picker.buffer_boost` (default
+on) glyphs that already occur in the current buffer get a small bonus,
+capped below one real use, so a file's own status marks come first.
 
 - **Module:** `lua/emojis/picker.lua`
 - **Usercmds:** `:Emojis insert`
 - **Keymaps:** `<C-e>` (normal, insert — `keymaps.preset = true`)
 - **Config:** `opts.picker.engine` (`"auto"`|`"telescope"`|`"fzf-lua"`|
   `"select"`, default `"auto"`), `opts.picker.frecency` (default `true`),
+  `opts.picker.buffer_boost` (default `true`),
   `opts.picks` (`{ glyph, label, search terms? }`)
 
 ## Quick-insert overlay

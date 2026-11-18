@@ -206,12 +206,25 @@ end
 ---@param picks Emojis.Config.PickEntry[]
 ---@return Emojis.Config.PickEntry[]
 function M.sort(picks)
-  local by_key = scores(os.time())
+  return M.rank(picks, nil, true)
+end
+
+---Return `picks` reordered by descending score, the given order breaking ties.
+---The score is the recorded usage (when `use_usage`) plus `bonus[M.key(glyph)]`
+---(the insert picker's buffer heuristic). The input is never mutated.
+---@param picks Emojis.Config.PickEntry[]
+---@param bonus? table<string, number>  extra score per `M.key`
+---@param use_usage boolean
+---@return Emojis.Config.PickEntry[]
+function M.rank(picks, bonus, use_usage)
+  local by_key = use_usage and scores(os.time()) or {}
+  bonus = bonus or {}
 
   ---@type {entry: Emojis.Config.PickEntry, score: number, idx: integer}[]
   local ranked = {}
   for i = 1, #picks do
-    ranked[i] = { entry = picks[i], score = by_key[M.key(picks[i][1])] or 0, idx = i }
+    local k = M.key(picks[i][1])
+    ranked[i] = { entry = picks[i], score = (by_key[k] or 0) + (bonus[k] or 0), idx = i }
   end
 
   table.sort(ranked, function(a, b)

@@ -116,6 +116,7 @@ vim-plug: >vim
     picker = {                    -- insert picker
       engine = "auto",            -- "auto" | "telescope" | "fzf-lua" | "select"
       frecency = true,            -- order by usage, offer glyphs used elsewhere
+      buffer_boost = true,        -- small bonus for glyphs already in the buffer
     },
 
     overlay = {                   -- quick-insert overlay (`:Emojis overlay`)
@@ -159,6 +160,12 @@ picker.frecency ~
   glyphs used elsewhere in the plugin (`toggle`/`add`, `unicode name`,
   `unicode search`) that `picks` lacks. Usage is recorded while this or
   `overlay.frecency` is `true`. Default: `true`.
+
+picker.buffer_boost ~
+  When `true`, a glyph that already occurs in the buffer you insert into
+  (first 3000 lines) gets a small bonus in `:Emojis insert`, capped below one
+  real use, and one `picks` lacks joins the list. Nothing is stored.
+  Default: `true`.
 
 names ~
   Map of Unicode codepoint to replacement text used by `:Emojis

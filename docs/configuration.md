@@ -51,6 +51,7 @@ require("emojis").setup({
   picker = {
     engine = "auto",
     frecency = true,   -- order by recorded usage, offer glyphs used elsewhere
+    buffer_boost = true, -- small bonus for glyphs already in the buffer
   },
 
   -- Quick-insert overlay (`:Emojis overlay`)
@@ -152,6 +153,14 @@ inserted with `unicode search!` a full one. A glyph used that way that is not
 in `picks` joins the list and ranks by its usage among the picks (labelled
 from `names`, else `used`). `⚠` and `⚠️` (with and without VS16) count as one glyph. Recording
 stays on while `overlay.frecency` or `picker.frecency` is `true`.
+
+With `picker.buffer_boost = true` (the default) the buffer you insert into
+counts as well: a glyph that already occurs in it (first 3000 lines) gets a
+small bonus — 0.25 for one occurrence, 0.1 more for each further one, capped
+at 0.75 — and one `picks` lacks joins the list (labelled from `names`, else
+`in_buffer`). The cap stays below one real insertion, so your own usage keeps
+the upper hand; the file only adds its own vocabulary, such as the
+🟢/🟡/🔴 status marks of a notes file. Nothing of this is stored.
 
 The overlay is drawn with [`lib.nvim`](https://github.com/WKDSteve/lib.nvim)'s
 `ui.kit`, so `theme` accepts any kit theme argument — a preset name

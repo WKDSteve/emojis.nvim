@@ -127,6 +127,10 @@ local DEFAULTS = {
     -- `:Emojis unicode`), and offer glyphs used that way that are not in
     -- `picks`. Also turns on the recording itself.
     frecency = true,
+    -- Give glyphs that already occur in the buffer you insert into a small
+    -- bonus (less than one real use) and offer the ones `picks` lacks: the
+    -- file brings its own vocabulary (e.g. its 🟢/🟡/🔴 status marks).
+    buffer_boost = true,
   },
 
   -- Emoji checkbox cycles (`:Emojis toggle [set]`).
