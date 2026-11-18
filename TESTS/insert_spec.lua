@@ -139,10 +139,11 @@ return function(H)
     frecency.reset()
   end
 
-  -- With `overlay.frecency = false` the insert still happens, but nothing is
-  -- recorded — opting out of the feature also opts out of the disk write.
+  -- With `overlay.frecency = false` and `picker.frecency = false` the insert
+  -- still happens, but nothing is recorded — opting out of both consumers of
+  -- the store also opts out of the disk write.
   do
-    config.setup({ overlay = { frecency = false } })
+    config.setup({ overlay = { frecency = false }, picker = { frecency = false } })
     local buf = H.scratch()
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "" })
     vim.api.nvim_win_set_cursor(0, { 1, 0 })
@@ -150,7 +151,7 @@ return function(H)
 
     eq(line_of(buf), "🔥", "at_cursor: inserts regardless of the frecency setting")
     local picks = { { "✅", "white_check_mark" }, { "🔥", "fire" } }
-    eq(frecency.sort(picks)[1][1], "✅", "at_cursor: nothing recorded with overlay.frecency = false")
+    eq(frecency.sort(picks)[1][1], "✅", "at_cursor: nothing recorded with both frecency options off")
     config.setup({})
     frecency.reset()
   end

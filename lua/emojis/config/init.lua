@@ -61,7 +61,7 @@ local NESTED_OPTS = {
   search = { "cmd", "extra_args", "no_ignore" },
   wrap = { "prefix", "suffix" },
   preview = { "enable", "duration_ms", "hl_group" },
-  picker = { "engine" },
+  picker = { "engine", "frecency" },
   overlay = { "mode", "picks", "frecency", "columns", "limit", "title", "theme" },
   checkbox = { "default_set", "sets", "order" },
 }

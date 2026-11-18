@@ -64,6 +64,7 @@ local function main()
     "checkbox_spec.lua",
     "scope_spec.lua",
     "config_spec.lua",
+    "catalog_spec.lua",
     "config_merge_spec.lua",
     "unicode_data_spec.lua",
     "unicode_digraphs_spec.lua",
@@ -82,6 +83,7 @@ local function main()
     -- UI layers
     "picker_spec.lua",
     "picker_engine_spec.lua",
+    "picker_usage_spec.lua",
     "frecency_spec.lua",
     "overlay_spec.lua",
     "overlay_modes_spec.lua",

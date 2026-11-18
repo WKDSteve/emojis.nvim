@@ -7,9 +7,10 @@ require("emojis").setup({
   default_scope = "%",        -- scope used when none is given
   command       = "Emojis",   -- name of the user command
 
-  -- Entries for the insert picker: { glyph, label }. Both `picks` and
-  -- `names` are derived internally from the same catalog (60+ entries) — one
-  -- label feeds both the picker and the replace/unreplace map.
+  -- Entries for the insert picker: { glyph, label, search terms? }. Both
+  -- `picks` and `names` are derived internally from the same catalog
+  -- (lua/emojis/catalog.lua, 450+ entries, English and German search terms)
+  -- — one label feeds both the picker and the replace/unreplace map.
   picks = {
     { "✅", "white_check_mark" }, { "❌", "x" }, { "⚠️", "warning" }, --[[ … ]]
   },
@@ -49,6 +50,7 @@ require("emojis").setup({
   -- Insert picker engine: "auto" | "telescope" | "fzf-lua" | "select"
   picker = {
     engine = "auto",
+    frecency = true,   -- order by recorded usage, offer glyphs used elsewhere
   },
 
   -- Quick-insert overlay (`:Emojis overlay`)
@@ -117,12 +119,39 @@ order, so the grid stays stable instead of shuffling under the cursor. Sorting
 never adds or removes entries: you always see exactly the glyphs you pinned.
 
 Usage is stored as JSON under `stdpath("data")/emojis.nvim/frecency.json`. Set
-`frecency = false` to disable both the reordering and the file write, or clear
-the history at any time with:
+`overlay.frecency = false` to stop the overlay's reordering; the file write
+stops only when `picker.frecency` is `false` as well (see below). Clear the
+history at any time with:
 
 ```lua
 require("emojis.overlay.frecency").reset()
 ```
+
+### Insert picker: search terms and usage
+
+`:Emojis insert` matches what you type against a pick's label **and** its
+search terms, the optional third field of an entry. The built-in catalog
+gives every glyph English and German terms, plus the terms of its section, so
+`ampel` finds the traffic-light circles, `pfeil` every arrow, `haken` the
+check marks. A German word with an umlaut is also indexed in its ASCII
+spelling (`gruen`, `weiss`), so a prompt without umlauts still finds it. The
+terms are shown after a `·`; your own entries may add them too:
+
+```lua
+picks = {
+  { "🚢", "ship", "release ausliefern" },
+  { "→", "thin_arrow_right" },          -- terms are optional
+},
+```
+
+With `picker.frecency = true` (the default) the picker is ordered by
+recorded usage, and the store learns from more than insertions: a checkbox
+state `:Emojis toggle`/`add` leaves in the buffer counts half a use, a glyph
+looked up with `:Emojis unicode name` or `unicode search` half a use, one
+inserted with `unicode search!` a full one. A glyph used that way that is not
+in `picks` is offered on top of the list (labelled from `names`, else
+`used`). `⚠` and `⚠️` (with and without VS16) count as one glyph. Recording
+stays on while `overlay.frecency` or `picker.frecency` is `true`.
 
 The overlay is drawn with [`lib.nvim`](https://github.com/WKDSteve/lib.nvim)'s
 `ui.kit`, so `theme` accepts any kit theme argument — a preset name

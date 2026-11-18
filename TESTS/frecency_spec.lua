@@ -96,10 +96,52 @@ return function(H)
   -- the feature off should not find a usage file in their data directory.
   do
     local path = store_at(nil)
+    config.setup({ overlay = { frecency = false }, picker = { frecency = false } })
+    frecency.record("🚀")
+    eq(vim.fn.filereadable(path), 0, "record: both frecency options off writes nothing")
+    config.setup({})
+  end
+
+  -- Either consumer keeps the recording on: the picker orders by it even when
+  -- the overlay does not.
+  do
+    local path = store_at(nil)
     config.setup({ overlay = { frecency = false } })
     frecency.record("🚀")
-    eq(vim.fn.filereadable(path), 0, "record: overlay.frecency = false writes nothing")
+    eq(vim.fn.filereadable(path), 1, "record: picker.frecency alone still records")
+    config.setup({ picker = { frecency = false } })
+    frecency.record("🔥")
+    frecency.record("🔥")
+    eq(order_of(PICKS), "🔥🚀✅", "record: overlay.frecency alone still records")
     config.setup({})
+  end
+
+  -- A weight scales one use: a lookup (0.5) ranks below an insertion (1).
+  do
+    store_at(nil)
+    frecency.record("🔥", 0.5)
+    frecency.record("🚀")
+    eq(order_of(PICKS), "🚀🔥✅", "record: a lighter weight ranks below a full use")
+    frecency.record("🔥", 0)
+    eq(order_of(PICKS), "🔥🚀✅", "record: a non-positive weight counts as one full use")
+  end
+
+  -- With and without VS16 are one glyph: their uses add up, and used() lists
+  -- the spelling recorded most, once.
+  do
+    store_at(nil)
+    local warn, bare = "⚠️", "⚠"
+    frecency.record(bare)
+    frecency.record(warn)
+    frecency.record(warn)
+    frecency.record("🚀")
+    frecency.record("🚀")
+    local picks = { { "🚀", "rocket" }, { warn, "warning" } }
+    eq(frecency.sort(picks)[1][1], warn, "key: both spellings count for the catalog's one")
+    local used = frecency.used()
+    eq(#used, 2, "used: one entry per glyph, not per spelling")
+    eq(used[1], warn, "used: best score first, in the spelling recorded most")
+    eq(frecency.key(warn), bare, "key: VS16 is stripped")
   end
 
   -- ------------------------------------------------------- degraded stores

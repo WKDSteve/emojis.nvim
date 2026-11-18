@@ -1,11 +1,17 @@
 ---@module 'emojis.overlay.frecency'
---- Usage store that reorders the overlay's curated picks by frecency.
+--- Usage store that reorders the overlay's curated picks and the insert
+--- picker by frecency.
 ---
 --- The overlay starts from a curated, config-owned list (`overlay.picks`) so a
---- fresh install is immediately useful and deterministic. This module only ever
---- *reorders* that list — it never adds or removes entries, so a user who pins
---- a set of glyphs keeps exactly those glyphs, just sorted by how they actually
---- use them.
+--- fresh install is immediately useful and deterministic. For the overlay this
+--- module only ever *reorders* that list — it never adds or removes entries, so
+--- a user who pins a set of glyphs keeps exactly those glyphs, just sorted by
+--- how they actually use them. The insert picker (`picker.frecency`) also asks
+--- `M.used()` for glyphs used elsewhere in the plugin that its list lacks.
+---
+--- Uses come from every entry point: an insertion (weight 1), a checkbox
+--- toggle and a `:Emojis unicode` lookup (lighter weights, see callers). Two
+--- spellings of one glyph, with and without VS16, share one score (`M.key`).
 ---
 --- Scoring is count with exponential recency decay (`HALF_LIFE_DAYS`): a glyph
 --- used twice today outranks one used three times last month, but a long-time
@@ -129,43 +135,70 @@ function M.set_path(path)
   _store = nil
 end
 
----Record one use of `glyph` and persist. A no-op when `overlay.frecency` is
----off, so opting out of the feature also opts out of the disk write — users who
----disable it should not find a usage file in their data dir.
+---Whether usage is recorded at all: on while either consumer of the store
+---wants it (`overlay.frecency`, `picker.frecency`). Off for both means no
+---write, so users who disable the feature find no usage file in their data dir.
+---@return boolean
+---@internal
+local function enabled()
+  local cfg = require("emojis.config").get()
+  return cfg.overlay.frecency == true or (type(cfg.picker) == "table" and cfg.picker.frecency == true)
+end
+
+---@type string  Variation Selector-16 (U+FE0F), stripped by `M.key`.
+local VS16 = "\239\184\143"
+
+---The key two spellings of one glyph share: `⚠️` (with VS16, as the catalog
+---has it) and `⚠` (without, as `:Emojis unicode` produces it) are one glyph
+---to the user, so their uses add up.
 ---@param glyph string
+---@return string
+function M.key(glyph)
+  return (glyph:gsub(VS16, ""))
+end
+
+---Record one use of `glyph` and persist. A no-op when recording is off
+---(`overlay.frecency` and `picker.frecency` both false).
+---
+---`weight` says how strong the signal is: an insertion counts 1 (the
+---default), a glyph only looked up or cycled to counts less, so a glyph the
+---user actually types still wins over one they merely touched.
+---@param glyph string
+---@param weight? number  default 1
 ---@return nil
-function M.record(glyph)
+function M.record(glyph, weight)
   if type(glyph) ~= "string" or glyph == "" then
     return
   end
-  if not require("emojis.config").get().overlay.frecency then
+  if not enabled() then
     return
   end
+  weight = (type(weight) == "number" and weight > 0) and weight or 1
 
   local store = load()
   local entry = store[glyph]
   if entry then
-    entry.count = entry.count + 1
+    entry.count = entry.count + weight
     entry.last = os.time()
   else
-    store[glyph] = { count = 1, last = os.time() }
+    store[glyph] = { count = weight, last = os.time() }
   end
 
   save()
 end
 
----Frecency score for one glyph (0 when never used).
----@param glyph string
+---Frecency score per `M.key`, summed over every spelling recorded.
 ---@param now integer
----@return number
+---@return table<string, number>
 ---@internal
-local function score(glyph, now)
-  local entry = load()[glyph]
-  if not entry then
-    return 0
+local function scores(now)
+  local out = {}
+  for glyph, entry in pairs(load()) do
+    local age_days = math.max(0, (now - (entry.last or 0)) / DAY)
+    local k = M.key(glyph)
+    out[k] = (out[k] or 0) + entry.count * 0.5 ^ (age_days / HALF_LIFE_DAYS)
   end
-  local age_days = math.max(0, (now - (entry.last or 0)) / DAY)
-  return entry.count * 0.5 ^ (age_days / HALF_LIFE_DAYS)
+  return out
 end
 
 ---Return `picks` reordered by descending frecency, curated order breaking ties.
@@ -173,12 +206,12 @@ end
 ---@param picks Emojis.Config.PickEntry[]
 ---@return Emojis.Config.PickEntry[]
 function M.sort(picks)
-  local now = os.time()
+  local by_key = scores(os.time())
 
   ---@type {entry: Emojis.Config.PickEntry, score: number, idx: integer}[]
   local ranked = {}
   for i = 1, #picks do
-    ranked[i] = { entry = picks[i], score = score(picks[i][1], now), idx = i }
+    ranked[i] = { entry = picks[i], score = by_key[M.key(picks[i][1])] or 0, idx = i }
   end
 
   table.sort(ranked, function(a, b)
@@ -191,6 +224,35 @@ function M.sort(picks)
   local out = {}
   for i = 1, #ranked do
     out[i] = ranked[i].entry
+  end
+  return out
+end
+
+---Every glyph with recorded usage, best score first (ties by glyph, so the
+---order is stable). One spelling per `M.key`: the one recorded most.
+---@return string[]
+function M.used()
+  local now = os.time()
+  local by_key = scores(now)
+  local best = {}
+  for glyph, entry in pairs(load()) do
+    local k = M.key(glyph)
+    if not best[k] or entry.count > best[k].count then
+      best[k] = { glyph = glyph, count = entry.count }
+    end
+  end
+  local out = {}
+  for k, b in pairs(best) do
+    out[#out + 1] = { glyph = b.glyph, score = by_key[k] }
+  end
+  table.sort(out, function(a, b)
+    if a.score ~= b.score then
+      return a.score > b.score
+    end
+    return a.glyph < b.glyph
+  end)
+  for i = 1, #out do
+    out[i] = out[i].glyph
   end
   return out
 end

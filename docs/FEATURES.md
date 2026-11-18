@@ -103,16 +103,31 @@ project. Defaulting the confirmation dialog to "cancel" means a stray
 ## Insert picker
 
 `:Emojis insert` opens a fuzzy picker at the cursor over the full catalog
-(60+ entries, `opts.picks`), inserting the chosen glyph. Engine
+(450+ entries, `opts.picks`), inserting the chosen glyph. Engine
 auto-detected (`picker.engine = "auto"`): telescope.nvim or fzf-lua if
 installed, else `vim.ui.select`. Every insertion — from here and from the
 overlay — is recorded for frecency-based overlay reordering.
+
+### Bigger catalog, German search, usage order (2026-11-18)
+
+The catalog (`lua/emojis/catalog.lua`) grew from 60 to 450+ glyphs, grouped
+developer-first: status and signals, traffic-light circles and squares,
+arrows (emoji and plain text such as `→ ⇒ ↳`), media/loop controls, time,
+dev tools, docs, review hands, then faces, symbols, nature, food, places.
+Each glyph carries English and German search terms (plus its section's, and
+the ASCII spelling of umlauts), which every engine matches and shows after a
+`·`. With `picker.frecency` (default on) the list is ordered by usage, and
+uses from other commands count too: `toggle`/`add` (the state left in the
+buffer), `unicode name` and `unicode search` (a look, half a use) and
+`unicode search!` (an insertion). Glyphs used that way outside the catalog
+are offered on top.
 
 - **Module:** `lua/emojis/picker.lua`
 - **Usercmds:** `:Emojis insert`
 - **Keymaps:** `<C-e>` (normal, insert — `keymaps.preset = true`)
 - **Config:** `opts.picker.engine` (`"auto"`|`"telescope"`|`"fzf-lua"`|
-  `"select"`, default `"auto"`), `opts.picks`
+  `"select"`, default `"auto"`), `opts.picker.frecency` (default `true`),
+  `opts.picks` (`{ glyph, label, search terms? }`)
 
 ## Quick-insert overlay
 
@@ -167,7 +182,8 @@ configured. Usage is persisted as JSON under
 clears the history.
 
 - **Module:** `lua/emojis/overlay/frecency.lua`
-- **Config:** `opts.overlay.frecency` (default `true`)
+- **Config:** `opts.overlay.frecency` (default `true`); recording stays on
+  while this or `opts.picker.frecency` is `true`
 
 ## Emoji checkboxes
 

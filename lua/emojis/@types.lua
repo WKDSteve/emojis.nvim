@@ -57,6 +57,7 @@
 ---@class Emojis.Config.PickEntry
 ---@field [1] string  The emoji glyph
 ---@field [2] string  Short label shown in the picker
+---@field [3]? string Extra search terms (space-separated, e.g. German words), shown dimmed
 
 ---@class Emojis.Config.Search
 ---@field cmd        string    External search binary (default "rg")
@@ -82,7 +83,8 @@
 ---| '"select"'    # Always use vim.ui.select
 
 ---@class Emojis.Config.Picker
----@field engine Emojis.Config.Picker.Engine  Insert-picker engine (default "auto")
+---@field engine   Emojis.Config.Picker.Engine  Insert-picker engine (default "auto")
+---@field frecency boolean  Order by recorded usage and offer used glyphs outside `picks` (default true)
 
 ---@class Emojis.Config.Checkbox
 ---@field default_set string                    Set used by `:Emojis toggle` with no argument; "" = search all
@@ -151,7 +153,8 @@
 ---@field hl_group?    string   Highlight group used for the preview extmarks
 
 ---@class Emojis.Opts.Picker
----@field engine? Emojis.Config.Picker.Engine  Insert-picker engine (default "auto")
+---@field engine?   Emojis.Config.Picker.Engine  Insert-picker engine (default "auto")
+---@field frecency? boolean  Order by recorded usage and offer used glyphs outside `picks` (default true)
 
 ---@class Emojis.Opts.Checkbox
 ---@field default_set? string                    Set used by `:Emojis toggle` with no argument; "" = search all

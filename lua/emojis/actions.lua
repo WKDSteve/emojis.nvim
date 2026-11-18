@@ -155,6 +155,32 @@ local CHECKBOX_OPS = {
   remove = { fn = "remove", verb = "Removed" },
 }
 
+---@type number  Weight of a glyph a checkbox command left in the buffer (see emojis.overlay.frecency).
+local CHECKBOX_WEIGHT = 0.5
+
+---Count each distinct checkbox glyph in `lines` once as a (light) use, so the
+---insert picker ranks the states the user actually cycles through. A removal
+---leaves none, so it records nothing.
+---@param checkbox table  the emojis.core.checkbox module
+---@param lines string[]
+---@param sets string[][]
+---@return nil
+---@internal
+local function record_checkboxes(checkbox, lines, sets)
+  local seen = {}
+  local frecency = require("emojis.overlay.frecency")
+  for i = 1, #lines do
+    local s, e = checkbox.find(lines[i], sets)
+    if s then
+      local glyph = lines[i]:sub(s, e)
+      if not seen[glyph] then
+        seen[glyph] = true
+        frecency.record(glyph, CHECKBOX_WEIGHT)
+      end
+    end
+  end
+end
+
 ---Cycle / add / remove emoji checkboxes across a target's lines.
 ---
 ---Unlike `M.edit`, this ignores a `word` sub-range: a checkbox belongs to its
@@ -215,6 +241,7 @@ function M.checkbox(op, t, set_name, dir)
     notify.error("buffer is not modifiable")
     return
   end
+  record_checkboxes(checkbox, new_lines, sets)
   notify.info(("%s %d checkbox%s"):format(spec.verb, n, n == 1 and "" or "es"))
 end
 

@@ -23,6 +23,71 @@ local function insert_at_cursor(icon)
   insert.at_cursor(icon)
 end
 
+---@type string  Search terms shown for a glyph that only usage put in the list.
+local USED_TERMS = "used recent zuletzt verwendet benutzt"
+
+---The text a pick is shown as: glyph and label, then its search terms after a
+---`·`, so a match on a German word is visible as such.
+---@param entry Emojis.Config.PickEntry
+---@return string
+---@internal
+local function display_of(entry)
+  local terms = entry[3]
+  if type(terms) == "string" and terms ~= "" then
+    return entry[1] .. "  " .. entry[2] .. "  · " .. terms
+  end
+  return entry[1] .. "  " .. entry[2]
+end
+
+---The text an engine matches the prompt against: label plus search terms.
+---@param entry Emojis.Config.PickEntry
+---@return string
+---@internal
+local function ordinal_of(entry)
+  local terms = entry[3]
+  if type(terms) == "string" and terms ~= "" then
+    return entry[2] .. " " .. terms
+  end
+  return entry[2]
+end
+
+---The picks the picker shows: `picks` ordered by recorded usage, preceded by
+---each used glyph `picks` does not have (labelled from `names`, else "used").
+---Without `picker.frecency`, `picks` unchanged.
+---@param picks Emojis.Config.PickEntry[]
+---@return Emojis.Config.PickEntry[]
+function M.entries(picks)
+  local cfg = config.get()
+  if not (type(cfg.picker) == "table" and cfg.picker.frecency) then
+    return picks
+  end
+
+  local frecency = require("emojis.overlay.frecency")
+  local known = {}
+  for i = 1, #picks do
+    known[frecency.key(picks[i][1])] = true
+  end
+
+  local out = {}
+  local used = frecency.used()
+  local patterns = require("emojis.core.patterns")
+  for i = 1, #used do
+    local glyph = used[i]
+    if not known[frecency.key(glyph)] then
+      local ok, cp = pcall(patterns.codepoint, glyph)
+      local name = ok and cp and type(cfg.names) == "table" and cfg.names[cp] or nil
+      local label = type(name) == "string" and name:gsub("^:", ""):gsub(":$", "") or "used"
+      out[#out + 1] = { glyph, label, USED_TERMS }
+    end
+  end
+
+  local sorted = frecency.sort(picks)
+  for i = 1, #sorted do
+    out[#out + 1] = sorted[i]
+  end
+  return out
+end
+
 ---Try the telescope.nvim picker. Returns true if it took over.
 ---@param picks Emojis.Config.PickEntry[]
 ---@return boolean
@@ -43,7 +108,7 @@ local function try_telescope(picks)
       finder = finders.new_table({
         results = picks,
         entry_maker = function(entry)
-          return { value = entry, display = entry[1] .. "  " .. entry[2], ordinal = entry[2] }
+          return { value = entry, display = display_of(entry), ordinal = ordinal_of(entry) }
         end,
       }),
       sorter = conf.values.generic_sorter({}),
@@ -80,7 +145,7 @@ local function try_fzf_lua(picks)
 
   local items, by_display = {}, {}
   for i = 1, #picks do
-    local display = picks[i][1] .. "  " .. picks[i][2]
+    local display = display_of(picks[i])
     items[i] = display
     by_display[display] = picks[i][1]
   end
@@ -107,7 +172,7 @@ end
 local function select_fallback(picks)
   local items = {}
   for i = 1, #picks do
-    items[i] = picks[i][1] .. "  " .. picks[i][2]
+    items[i] = display_of(picks[i])
   end
 
   local function on_choice(idx)
@@ -149,6 +214,7 @@ function M.insert()
     return
   end
 
+  picks = M.entries(picks)
   local engine = config.get().picker.engine
 
   if engine == "select" then

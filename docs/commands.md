@@ -17,7 +17,7 @@ Without arguments: `:Emojis` -> `:Emojis clear %` (removes all emojis in the buf
 | `wrap` | Wraps emojis with the `config.wrap` marker, without removing them |
 | `list` | Collects all emojis in the scope into the quickfix list |
 | `count` | Counts the emojis in the scope and reports the result |
-| `insert` | Opens a picker at the cursor for inserting an emoji |
+| `insert` | Opens a picker at the cursor for inserting an emoji; searches labels and English/German terms (`ampel`, `pfeil`), most-used first |
 | `overlay` | Opens the quick-insert overlay (see below) |
 | `toggle` | Cycles the emoji checkbox on the cursor line / range (see below) |
 | `first` | Jumps to the first emoji in the buffer (cursor navigation) |

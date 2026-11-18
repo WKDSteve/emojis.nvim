@@ -113,8 +113,9 @@ vim-plug: >vim
       hl_group = "IncSearch",
     },
 
-    picker = {                    -- insert-picker engine
+    picker = {                    -- insert picker
       engine = "auto",            -- "auto" | "telescope" | "fzf-lua" | "select"
+      frecency = true,            -- order by usage, offer glyphs used elsewhere
     },
 
     overlay = {                   -- quick-insert overlay (`:Emojis overlay`)
@@ -147,9 +148,17 @@ command ~
   Name of the registered user command. Default: `"Emojis"`.
 
 picks ~
-  Array of `{ glyph, label }` entries shown by `:Emojis insert`. The default
-  60+-entry catalog also derives `names` (one shared label per glyph, see
-  `config/DEFAULTS.lua`), so overriding `picks` alone does not affect `names`.
+  Array of `{ glyph, label, terms? }` entries shown by `:Emojis insert`.
+  `terms` is an optional string of extra search words. The default catalog
+  (450+ entries, English and German terms, see `lua/emojis/catalog.lua`) also
+  derives `names` (one shared label per glyph), so overriding `picks` alone
+  does not affect `names`.
+
+picker.frecency ~
+  When `true`, `:Emojis insert` is ordered by recorded usage and offers
+  glyphs used elsewhere in the plugin (`toggle`/`add`, `unicode name`,
+  `unicode search`) that `picks` lacks. Usage is recorded while this or
+  `overlay.frecency` is `true`. Default: `true`.
 
 names ~
   Map of Unicode codepoint to replacement text used by `:Emojis
@@ -276,7 +285,9 @@ count ~
 
 insert ~
   Open a picker (telescope.nvim/fzf-lua if available per `picker.engine`,
-  else `vim.ui.select`) and insert the chosen emoji at the cursor. The
+  else `vim.ui.select`) and insert the chosen emoji at the cursor. The prompt
+  matches the label and the search terms (English and German, e.g. `ampel`,
+  `pfeil`); with `picker.frecency` the most-used glyphs come first. The
   `scope` argument is ignored for this action.
 
 first ~
