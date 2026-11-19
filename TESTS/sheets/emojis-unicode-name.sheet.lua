@@ -1,14 +1,16 @@
 -- Live check: `:Emojis unicode name` (task emojis.nvim/testblatt-bindings-checkliste; section 9 of
--- ALL/manual-test-checklists/emojis.md). `curl` is what leaves the machine: it answers with a sample of the real file.
+-- ALL/manual-test-checklists/emojis.md). `curl` is what leaves the machine: the download starts the recording stand-in
+-- of `fakes` (a real process, so `testing perf` measures the start), and the sample of the real file lands in its `-o`.
 return {
   id = "emojis.unicode-name",
   feature = "emojis.unicode",
   title = "emojis.nvim: :Emojis unicode name, the catalog offline, the first download, the cache, the registers",
   task = "emojis.nvim/manual-checklist-run",
+  fakes = { "curl" },
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")
-      _G.stub_curl()
+      _G.stub_curl_process()
       require("emojis").setup({})
       _G.set("🚀 ß €")]],
       note = "no cached file in this child's stdpath",
@@ -26,6 +28,10 @@ return {
       expect = [=[_G.curls[1][1] == "curl" and _G.curls[1][#_G.curls[1]]:find("UnicodeData.txt", 1, true) ~= nil]=],
       note = "the UCD file through curl",
     },
+    {
+      expect = [[#require("testing.fake_programs").read(vim.env.TESTING_FAKES, "curl") == 1]],
+      note = "the stand-in ran it, not the real curl",
+    },
     { expect = [[_G.noted("U+00DF  ß  LATIN SMALL LETTER SHARP S")]], note = "the official name" },
     { expect = [[_G.noted("digraph: ss")]], note = "the digraph that produces it" },
     {
@@ -35,6 +41,10 @@ return {
     { keys = ":Emojis unicode name<CR>" },
     { expect = [[_G.noted("LATIN SMALL LETTER SHARP S")]], note = "answers from the cache" },
     { expect = [[#_G.curls == 1 and _G.ucd_mtime() == _G.stamp]], note = "no new download, the same timestamp" },
+    {
+      expect = [[#require("testing.fake_programs").read(vim.env.TESTING_FAKES, "curl") == 1]],
+      note = "and no second start",
+    },
 
     -- the registers
     { keys = ":Emojis unicode name z value<CR>" },

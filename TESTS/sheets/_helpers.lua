@@ -194,6 +194,18 @@ function _G.ucd_mtime()
   return st and (st.mtime.sec .. "." .. st.mtime.nsec) or nil
 end
 
+---Like `_G.stub_curl`, but the download really starts a process: the recording stand-in of a sheet's
+---`fakes = { "curl" }` (TESTS/sheets/fixtures/curl_stand_in.lua), then the sample lands in its `-o` file. Errors
+---instead of starting anything when `curl` would not resolve to the stand-in.
+function _G.stub_curl_process()
+  _G.curls = {}
+  local path = vim.fn.getcwd() .. "/TESTS/sheets/fixtures/curl_stand_in.lua"
+  local f = assert(io.open(path, "rb"))
+  local text = f:read("*a")
+  f:close()
+  assert(load(text, "=curl_stand_in"))(UCD .. PADDING, _G.curls)
+end
+
 ---Answer `curl`, which is what leaves the machine, with the sample written to its `-o` file, and record its argv in
 ---`_G.curls`. Every other program goes to the real vim.system. Whether `curl` is on the PATH is still looked up.
 function _G.stub_curl()

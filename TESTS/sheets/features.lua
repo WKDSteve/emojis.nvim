@@ -85,5 +85,6 @@ return {
     title = "With keymaps.preset the <leader>e group carries its label in which-key",
     surface = { "config:keymaps.preset" },
     docs = "docs/FEATURES.md",
+    perf = "skip:starts no process, it only registers a which-key group label",
   },
 }
