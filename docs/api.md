@@ -41,3 +41,9 @@ local info = unicode.info(0x1F680)  -- { cp, glyph, hex, dec, name, digraphs, ht
 unicode.name_at_cursor()            -- what :Emojis unicode name reports
 unicode.search("rocket", false)     -- what :Emojis unicode search does
 ```
+
+`unicode.info` never waits for the network: for a character outside your
+catalog while the UCD data is not cached yet, it starts the background
+download and returns `name = nil` with `name_err` saying so.
+`require("emojis.unicode.data").load(function(data, err) ... end)` answers
+once the data is there; `.cancel()` stops a running download.

@@ -28,11 +28,18 @@ return {
       expect = [=[_G.curls[1][1] == "curl" and _G.curls[1][#_G.curls[1]]:find("UnicodeData.txt", 1, true) ~= nil]=],
       note = "the UCD file through curl",
     },
+    { expect = [[_G.noted("downloading Unicode name data")]], note = "says it downloads" },
+    -- the download runs in the background (the stand-in's wait() would raise): the name comes once curl has exited
+    {
+      wait = [[_G.noted("U+00DF  ß  LATIN SMALL LETTER SHARP S")]],
+      timeout = 10000,
+      note = "the official name, once the download is there",
+    },
     {
       expect = [[#require("testing.fake_programs").read(vim.env.TESTING_FAKES, "curl") == 1]],
       note = "the stand-in ran it, not the real curl",
     },
-    { expect = [[_G.noted("U+00DF  ß  LATIN SMALL LETTER SHARP S")]], note = "the official name" },
+    { expect = [[vim.v.errmsg == ""]], note = "no Lua error on the way" },
     { expect = [[_G.noted("digraph: ss")]], note = "the digraph that produces it" },
     {
       lua = [[_G.stamp = _G.ucd_mtime(); require("emojis.unicode.data").reset(); _G.notes = {}]],

@@ -38,25 +38,60 @@ local function char_under_cursor()
   return ch
 end
 
----The name for `cp`, preferring emojis.nvim's own curated catalog (fast,
----needs no download) over the full UCD table (only consulted -- and only
----downloaded -- when the curated table has nothing for this codepoint).
+---The name emojis.nvim's own curated catalog has for `cp` (fast, needs no
+---download), nil when it has none.
+---@param cp integer
+---@return string|nil
+---@internal
+local function curated_name(cp)
+  local curated = require("emojis.config").get().names[cp]
+  if not curated then
+    return nil
+  end
+  -- ":white_check_mark:" -> "WHITE CHECK MARK", the Unicode-name shape,
+  -- so a curated and a UCD-sourced result read the same way.
+  return (curated:gsub("^:", ""):gsub(":$", ""):gsub("_", " "):upper())
+end
+
+---The name for `cp`, preferring the curated catalog over the full UCD table
+---(only consulted -- and only downloaded -- when the curated table has
+---nothing for this codepoint). Never waits: without cached UCD data this
+---starts the background download and reports that as `err`.
 ---@param cp integer
 ---@return string|nil name, string|nil err  err is set only when the UCD
 ---        fallback was needed and failed; a curated hit never sets it
 ---@internal
 local function resolve_name(cp)
-  local curated = require("emojis.config").get().names[cp]
+  local curated = curated_name(cp)
   if curated then
-    -- ":white_check_mark:" -> "WHITE CHECK MARK", the Unicode-name shape,
-    -- so a curated and a UCD-sourced result read the same way.
-    return (curated:gsub("^:", ""):gsub(":$", ""):gsub("_", " "):upper())
+    return curated
   end
   local data, err = data_mod.ensure()
   if not data then
     return nil, err
   end
   return data_mod.name_for(data, cp), nil
+end
+
+---Call `fn(name, err)` with the name of `cp`: at once for a curated or
+---cached one, after the background download for the rest.
+---@param cp integer
+---@param fn fun(name: string|nil, err: string|nil)
+---@return nil
+---@internal
+local function with_name(cp, fn)
+  local curated = curated_name(cp)
+  if curated then
+    fn(curated)
+    return
+  end
+  data_mod.load(function(data, err)
+    if not data then
+      fn(nil, err)
+      return
+    end
+    fn(data_mod.name_for(data, cp))
+  end)
 end
 
 ---@class Emojis.Unicode.Info
@@ -70,12 +105,14 @@ end
 ---@field html string    "&#xE9;"
 ---@field regex string   "\%u00E9" -- a Vim pattern matching this codepoint
 
----Gather everything `:Emojis unicode name` reports about one codepoint.
+---Everything about one codepoint, its name already resolved.
 ---@param cp integer
+---@param name string|nil
+---@param name_err string|nil
 ---@return Emojis.Unicode.Info
-function M.info(cp)
+---@internal
+local function build_info(cp, name, name_err)
   local glyph = patterns.encode(cp)
-  local name, name_err = resolve_name(cp)
   return {
     cp = cp,
     glyph = glyph,
@@ -87,6 +124,28 @@ function M.info(cp)
     html = ("&#x%X;"):format(cp),
     regex = ("\\%%u%04X"):format(cp),
   }
+end
+
+---Gather everything `:Emojis unicode name` reports about one codepoint.
+---Never waits for the network: without cached UCD data, a name outside the
+---curated catalog comes back as `name_err` ("still downloading") while the
+---download runs in the background.
+---@param cp integer
+---@return Emojis.Unicode.Info
+function M.info(cp)
+  return build_info(cp, resolve_name(cp))
+end
+
+---`M.info`, handed to `fn` once the name is known -- after the background
+---download when the UCD data is not cached yet.
+---@param cp integer
+---@param fn fun(info: Emojis.Unicode.Info)
+---@return nil
+---@internal
+local function with_info(cp, fn)
+  with_name(cp, function(name, err)
+    fn(build_info(cp, name, err))
+  end)
 end
 
 ---@type table<string, fun(info: Emojis.Unicode.Info): string>
@@ -130,28 +189,14 @@ local function record_use(glyph, cp, weight)
   end
 end
 
----`:Emojis unicode name [reg [type]]` -- report the character under the
----cursor, optionally saving one representation (`type`, default "name")
----into register `reg`.
----@param reg string|nil  a register name ("a".."z", '"', etc.)
----@param reg_type string|nil  one of REGISTER_TYPES' keys
+---Report one character the way `:Emojis unicode name` does, optionally
+---saving one representation (`reg_type`, default "name") into `reg`.
+---@param info Emojis.Unicode.Info
+---@param reg string|nil
+---@param reg_type string|nil
 ---@return nil
-function M.name_at_cursor(reg, reg_type)
-  local ch = char_under_cursor()
-  if not ch then
-    notify.info("no character under the cursor")
-    return
-  end
-
-  local cp = require("emojis.util.lib").utf8_decode(ch, 1)
-  if not cp then
-    notify.error("could not decode the character under the cursor")
-    return
-  end
-
-  local info = M.info(cp)
-  -- Looking a glyph up is a weaker signal than inserting it: half a use for the picker's ordering.
-  record_use(ch, cp, LOOKUP_WEIGHT)
+---@internal
+local function report(info, reg, reg_type)
   local msg = ("%s  %s  %s"):format(info.hex, info.glyph, info.name or "(name unknown)")
   if info.name_err then
     msg = msg .. ("  [name lookup unavailable: %s]"):format(info.name_err)
@@ -194,25 +239,71 @@ function M.name_at_cursor(reg, reg_type)
   end
 end
 
+---`:Emojis unicode name [reg [type]]` -- report the character under the
+---cursor, optionally saving one representation (`type`, default "name")
+---into register `reg`. A name that needs the UCD data while it is not
+---cached yet is reported once the background download has finished; the
+---editor stays usable meanwhile.
+---@param reg string|nil  a register name ("a".."z", '"', etc.)
+---@param reg_type string|nil  one of REGISTER_TYPES' keys
+---@return nil
+function M.name_at_cursor(reg, reg_type)
+  local ch = char_under_cursor()
+  if not ch then
+    notify.info("no character under the cursor")
+    return
+  end
+
+  local cp = require("emojis.util.lib").utf8_decode(ch, 1)
+  if not cp then
+    notify.error("could not decode the character under the cursor")
+    return
+  end
+
+  -- Looking a glyph up is a weaker signal than inserting it: half a use for the picker's ordering.
+  record_use(ch, cp, LOOKUP_WEIGHT)
+  with_info(cp, function(info)
+    report(info, reg, reg_type)
+  end)
+end
+
+local match, open_table
+
 ---Case-insensitive substring match over the UCD name table plus emojis.nvim's
 ---own curated catalog. A `U+xxxx` / `0xNNNN` / plain decimal query looks up
----that one codepoint instead of scanning names.
+---that one codepoint instead of scanning names. `done(results)` runs at once
+---when the UCD data is cached (or not needed), else after the background
+---download.
 ---@param query string
----@return Emojis.Unicode.Info[]
+---@param done fun(results: Emojis.Unicode.Info[])
+---@return nil
 ---@internal
-local function find(query)
+local function find(query, done)
   local hex = query:match("^[uU]%+(%x+)$") or query:match("^0[xX](%x+)$")
   local cp_query = hex and tonumber(hex, 16) or (query:match("^%d+$") and tonumber(query))
   if cp_query then
-    return { M.info(cp_query) }
+    with_info(cp_query, function(info)
+      done({ info })
+    end)
+    return
   end
 
-  local data, err = data_mod.ensure()
-  if not data then
-    notify.error("unicode search: " .. tostring(err))
-    return {}
-  end
+  data_mod.load(function(data, err)
+    if not data then
+      notify.error("unicode search: " .. tostring(err))
+      done({})
+      return
+    end
+    done(match(query, data))
+  end)
+end
 
+---The search proper over loaded data, sorted by codepoint.
+---@param query string
+---@param data Emojis.Unicode.Data
+---@return Emojis.Unicode.Info[]
+---@internal
+match = function(query, data)
   local needle = query:lower()
   local results, seen = {}, {}
   local MAX_RESULTS = 200
@@ -261,28 +352,29 @@ function M.search(query, insert)
     return
   end
 
-  local results = find(query)
-  if #results == 0 then
-    notify.info(("no match for %q"):format(query))
-    return
-  end
-
-  vim.ui.select(results, {
-    prompt = ("Unicode: %d match%s for %q"):format(#results, #results == 1 and "" or "es", query),
-    format_item = function(info)
-      return ("%s  %s  %s"):format(info.hex, info.glyph, info.name or "(name unknown)")
-    end,
-  }, function(choice)
-    if not choice then
+  find(query, function(results)
+    if #results == 0 then
+      notify.info(("no match for %q"):format(query))
       return
     end
-    if insert then
-      vim.api.nvim_put({ choice.glyph }, "c", true, true)
-      record_use(choice.glyph, choice.cp)
-    else
-      record_use(choice.glyph, choice.cp, LOOKUP_WEIGHT)
-      notify.info(("%s  %s  %s"):format(choice.hex, choice.glyph, choice.name or "(name unknown)"))
-    end
+
+    vim.ui.select(results, {
+      prompt = ("Unicode: %d match%s for %q"):format(#results, #results == 1 and "" or "es", query),
+      format_item = function(info)
+        return ("%s  %s  %s"):format(info.hex, info.glyph, info.name or "(name unknown)")
+      end,
+    }, function(choice)
+      if not choice then
+        return
+      end
+      if insert then
+        vim.api.nvim_put({ choice.glyph }, "c", true, true)
+        record_use(choice.glyph, choice.cp)
+      else
+        record_use(choice.glyph, choice.cp, LOOKUP_WEIGHT)
+        notify.info(("%s  %s  %s"):format(choice.hex, choice.glyph, choice.name or "(name unknown)"))
+      end
+    end)
   end)
 end
 
@@ -309,15 +401,24 @@ end
 
 ---Open a scratch buffer listing the full loaded name table, one line per
 ---character: "U+XXXX <glyph> NAME". Downloads the UCD data first if it is
----not cached yet -- see `emojis.unicode.data`.
+---not cached yet (in the background, the table opens once it is there) --
+---see `emojis.unicode.data`.
 ---@return nil
 function M.table_open()
-  local data, err = data_mod.ensure()
-  if not data then
-    notify.error("unicode table: " .. tostring(err))
-    return
-  end
+  data_mod.load(function(data, err)
+    if not data then
+      notify.error("unicode table: " .. tostring(err))
+      return
+    end
+    open_table(data)
+  end)
+end
 
+---The scratch buffer of `M.table_open`, over loaded data.
+---@param data Emojis.Unicode.Data
+---@return nil
+---@internal
+open_table = function(data)
   local sorted = {}
   for i = 1, #data.list do
     sorted[i] = data.list[i]

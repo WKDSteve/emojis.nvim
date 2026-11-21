@@ -38,16 +38,24 @@ vim.system = function(cmd, opts, on_exit)
       out = cmd[i + 1]
     end
   end
-  local proc = system(cmd, opts)
+  -- The download is asynchronous: the body lands in `-o` once the stand-in has exited, before the caller's `on_exit`
+  -- hears of it. A `wait()` is refused: the download must never block the editor.
+  local proc = system(cmd, opts, function(result)
+    if out and result.code == 0 then
+      local f = assert(io.open(out, "wb"))
+      f:write(body)
+      f:close()
+    end
+    if on_exit then
+      on_exit(result)
+    end
+  end)
   return {
-    wait = function(_, timeout)
-      local result = proc:wait(timeout)
-      if out and result.code == 0 then
-        local f = assert(io.open(out, "wb"))
-        f:write(body)
-        f:close()
-      end
-      return result
+    wait = function()
+      error("the Unicode download waited for curl: it must not block the editor")
+    end,
+    kill = function(_, signal)
+      return proc:kill(signal)
     end,
   }
 end

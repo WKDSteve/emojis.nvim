@@ -208,6 +208,8 @@ end
 
 ---Answer `curl`, which is what leaves the machine, with the sample written to its `-o` file, and record its argv in
 ---`_G.curls`. Every other program goes to the real vim.system. Whether `curl` is on the PATH is still looked up.
+---Asynchronous like the real one: `on_exit` runs on a later tick, and `wait()` raises, since the download must never
+---block the editor.
 function _G.stub_curl()
   _G.curls = {}
   local real = vim.system
@@ -223,10 +225,16 @@ function _G.stub_curl()
         f:close()
       end
     end
+    if on_exit then
+      vim.schedule(function()
+        on_exit({ code = 0, signal = 0, stdout = "", stderr = "" })
+      end)
+    end
     return {
       wait = function()
-        return { code = 0, stdout = "", stderr = "" }
+        error("the Unicode download waited for curl: it must not block the editor")
       end,
+      kill = function() end,
     }
   end
 end

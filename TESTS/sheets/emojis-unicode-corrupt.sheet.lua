@@ -22,7 +22,10 @@ return {
 
     { keys = ":Emojis unicode search rocket<CR>" },
     { expect = [[#_G.curls == 1]], note = "running it again downloads" },
-    { expect = [[#_G.offered == 1 and _G.offered[1]:find("ROCKET", 1, true)]], note = "and works" },
+    {
+      wait = [[_G.offered ~= nil and #_G.offered == 1 and _G.offered[1]:find("ROCKET", 1, true) ~= nil]],
+      note = "and works, once the background download is there",
+    },
     { expect = [[_G.ucd_mtime() ~= nil]], note = "the cache is back" },
   },
 }

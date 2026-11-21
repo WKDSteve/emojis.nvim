@@ -80,6 +80,7 @@ local function main()
     "search_spec.lua",
     "search_run_spec.lua",
     "unicode_spec.lua",
+    "unicode_download_spec.lua",
     -- UI layers
     "picker_spec.lua",
     "picker_engine_spec.lua",

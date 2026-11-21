@@ -13,6 +13,12 @@
 --- `curl` or an already-cached copy, every `unicode.*` command reports why
 --- and does nothing else, same as `M.ensure()`'s second return value says.
 ---
+--- The download never blocks the editor: `M.load(on_done)` starts curl in the
+--- background and answers once the file is there (at once when it already
+--- is). Every caller that asks while a download runs joins it instead of
+--- starting a second curl; `M.cancel()` (or <Esc> in a "float" progress
+--- window) stops it.
+---
 --- The download writes to a temp file and renames it into place only once
 --- the response passes a size sanity check -- so a transfer cut short by
 --- anything outside curl's own error handling (Neovim killed, the machine
@@ -181,45 +187,78 @@ local MAX_DOWNLOAD_BYTES = 10 * 1024 * 1024
 -- here so a half-written response never becomes "the cache".
 local MIN_VALID_BYTES = 500 * 1024
 
----Download `UnicodeData.txt` via `curl` into the cache file. Blocking (the
----same synchronous download unicode.vim's own `s:CheckDir` does) -- notifies
----and forces a redraw first, so the message actually reaches the screen
----before the blocking wait starts (a notify issued immediately before a
----synchronous `SystemObj:wait()` is never flushed until that call returns --
----`vim.wait`'s own `fast_only` mode skips UI redraw/message processing while
----it blocks). Downloads to a temp file and renames it into place only once
----the response looks like a real UnicodeData.txt (curl succeeded, non-empty,
----above `MIN_VALID_BYTES`) -- so a download cut short by anything outside
----curl's own error handling (nvim killed, the machine sleeping/crashing) can
----never leave a partial file at `CACHE_FILE` for `M.cached()` to trust later.
----@return boolean ok, string|nil err
-function M.download()
-  if vim.fn.executable("curl") ~= 1 then
-    return false, "curl not found on $PATH"
+-- A backstop above curl's own `--max-time 20`: should curl hang anyway (a
+-- stalled DNS lookup it does not count), `vim.system` kills it after this.
+local KILL_AFTER_MS = 30000
+
+---@class Emojis.Unicode.Download
+---@field waiters fun(ok: boolean, err: string|nil)[]  everyone to answer once curl exits
+---@field proc vim.SystemObj|nil
+---@field progress Lib.Progress.Handle|nil
+---@field cancelled boolean
+
+---The one download in flight, nil while none runs.
+---@type Emojis.Unicode.Download|nil
+local inflight
+
+---A progress indicator through `lib.nvim.progress`, nil without it.
+---@return Lib.Progress.Handle|nil
+---@internal
+local function new_progress()
+  local ok, progress = pcall(require, "lib.nvim.progress")
+  if not ok or type(progress) ~= "table" or type(progress.create) ~= "function" then
+    return nil
   end
-  vim.fn.mkdir(CACHE_DIR, "p")
-  require("emojis.util.lib").notifier().info("downloading Unicode name data (once, cached)...")
-  vim.cmd("redraw")
+  local made, handle = pcall(progress.create, { title = "[emojis]" })
+  if not made then
+    return nil
+  end
+  handle:update({ text = "downloading Unicode name data" })
+  return handle
+end
 
-  local tmp_file = CACHE_FILE .. ".tmp"
-  pcall(vim.fn.delete, tmp_file)
-  local result = vim
-    .system({
-      "curl",
-      "-sSL",
-      "--max-time",
-      "20",
-      "--max-filesize",
-      tostring(MAX_DOWNLOAD_BYTES),
-      "-o",
-      tmp_file,
-      URL,
-    })
-    :wait()
+---Answer every waiter of `job` with `ok, err`. One waiter raising must not
+---cost the others their answer.
+---@param job Emojis.Unicode.Download
+---@param ok boolean
+---@param err string|nil
+---@internal
+local function settle(job, ok, err)
+  if inflight == job then
+    inflight = nil
+  end
+  if job.progress then
+    if ok then
+      job.progress:finish("Unicode name data downloaded")
+    else
+      job.progress:cancel(err)
+    end
+  end
+  for _, waiter in ipairs(job.waiters) do
+    local fine, why = pcall(waiter, ok, err)
+    if not fine then
+      require("emojis.util.lib").notifier().error("unicode: " .. tostring(why))
+    end
+  end
+end
 
+---What curl's exit means: renames the temp file into place when the
+---response looks like a real UnicodeData.txt, else deletes it.
+---@param job Emojis.Unicode.Download
+---@param result vim.SystemCompleted
+---@param tmp_file string
+---@return boolean ok, string|nil err
+---@internal
+local function finish(job, result, tmp_file)
   local size = vim.fn.filereadable(tmp_file) == 1 and vim.fn.getfsize(tmp_file) or -1
-  if result.code ~= 0 or size < MIN_VALID_BYTES then
+  if job.cancelled or result.code ~= 0 or size < MIN_VALID_BYTES then
     pcall(vim.fn.delete, tmp_file)
+    if job.cancelled then
+      return false, "download cancelled"
+    end
+    if result.code == 124 then
+      return false, ("download timed out after %d s"):format(KILL_AFTER_MS / 1000)
+    end
     return false, ("download failed or incomplete (curl exit %s, %s bytes)"):format(tostring(result.code), tostring(size))
   end
 
@@ -233,22 +272,88 @@ function M.download()
   return true
 end
 
----Ensure the parsed table is loaded, downloading first if there is no cache
----yet. Memoized -- later calls in the same session are free. A cache file
----that turns out to be corrupt or incomplete (see `M.parse`'s `truncated`)
----is deleted rather than trusted -- so a bad cache is wrong for one call,
----not silently wrong for the rest of every session until a human notices
----and finds the file themselves.
+---Download `UnicodeData.txt` via `curl` into the cache file, in the
+---background: `on_done(ok, err)` runs on the main loop once curl has exited
+---(at once when curl is missing or cannot start). A call while a download is
+---already running joins it -- one curl, every caller answered. Downloads to a
+---temp file and renames it into place only once the response looks like a
+---real UnicodeData.txt (curl succeeded, above `MIN_VALID_BYTES`) -- so a
+---download cut short by anything outside curl's own error handling (nvim
+---killed, the machine sleeping/crashing) can never leave a partial file at
+---`CACHE_FILE` for `M.cached()` to trust later.
+---@param on_done fun(ok: boolean, err: string|nil)
+---@return nil
+function M.download(on_done)
+  if inflight then
+    inflight.waiters[#inflight.waiters + 1] = on_done
+    return
+  end
+  if vim.fn.executable("curl") ~= 1 then
+    on_done(false, "curl not found on $PATH")
+    return
+  end
+  vim.fn.mkdir(CACHE_DIR, "p")
+  require("emojis.util.lib").notifier().info("downloading Unicode name data (once, cached)...")
+
+  local tmp_file = CACHE_FILE .. ".tmp"
+  pcall(vim.fn.delete, tmp_file)
+  ---@type Emojis.Unicode.Download
+  local job = { waiters = { on_done }, cancelled = false }
+  inflight = job
+  local started, proc = pcall(vim.system, {
+    "curl",
+    "-sSL",
+    "--max-time",
+    "20",
+    "--max-filesize",
+    tostring(MAX_DOWNLOAD_BYTES),
+    "-o",
+    tmp_file,
+    URL,
+  }, { timeout = KILL_AFTER_MS }, function(result)
+    vim.schedule(function()
+      settle(job, finish(job, result, tmp_file))
+    end)
+  end)
+  if not started then
+    settle(job, false, "could not start curl: " .. tostring(proc))
+    return
+  end
+  job.proc = proc
+  job.progress = new_progress()
+  if job.progress then
+    job.progress:on_cancel(M.cancel)
+  end
+end
+
+---Stop the download in flight; its waiters get "download cancelled".
+---@return boolean stopped  false when no download was running
+function M.cancel()
+  local job = inflight
+  if not job or not job.proc then
+    return false
+  end
+  job.cancelled = true
+  pcall(job.proc.kill, job.proc, 15)
+  return true
+end
+
+---Whether a download is running right now.
+---@return boolean
+function M.downloading()
+  return inflight ~= nil
+end
+
+---Parse the cache file and memoize the result. A cache file that turns out
+---to be corrupt or incomplete (see `M.parse`'s `truncated`) is deleted
+---rather than trusted -- so a bad cache is wrong for one call, not silently
+---wrong for the rest of every session until a human notices and finds the
+---file themselves.
 ---@return Emojis.Unicode.Data|nil data, string|nil err
-function M.ensure()
+---@internal
+local function from_cache()
   if loaded then
     return loaded
-  end
-  if not M.cached() then
-    local ok, err = M.download()
-    if not ok then
-      return nil, err
-    end
   end
   local ok, raw = pcall(function()
     return table.concat(vim.fn.readfile(CACHE_FILE), "\n")
@@ -267,10 +372,56 @@ function M.ensure()
   return loaded
 end
 
+---Hand the parsed table to `on_done(data, err)`: at once when it is loaded
+---or cached, else once the background download (`M.download`) has finished.
+---Memoized -- later calls in the same session are free.
+---@param on_done fun(data: Emojis.Unicode.Data|nil, err: string|nil)
+---@return nil
+function M.load(on_done)
+  if loaded or M.cached() then
+    on_done(from_cache())
+    return
+  end
+  M.download(function(ok, err)
+    if not ok then
+      on_done(nil, err)
+      return
+    end
+    on_done(from_cache())
+  end)
+end
+
+---The parsed table, without waiting: loaded or cached data is returned at
+---once. Without a cache this starts (or joins) the background download and
+---returns nil with a message saying so -- call again, or use `M.load`.
+---@return Emojis.Unicode.Data|nil data, string|nil err
+function M.ensure()
+  if loaded or M.cached() then
+    return from_cache()
+  end
+  if vim.fn.executable("curl") ~= 1 then
+    return nil, "curl not found on $PATH"
+  end
+  M.load(function() end)
+  return nil, "Unicode name data is still downloading -- try again in a moment"
+end
+
 ---For tests: drop the in-memory table without touching the cache file.
 ---@return nil
 function M.reset()
   loaded = nil
+end
+
+---For tests: keep the cache below `dir` instead of `stdpath("cache")`, so a
+---spec never touches the real one. Returns the directory it replaced.
+---@param dir string
+---@return string previous
+function M.set_cache_dir(dir)
+  local previous = CACHE_DIR
+  CACHE_DIR = dir
+  CACHE_FILE = dir .. "/UnicodeData.txt"
+  loaded = nil
+  return previous
 end
 
 return M

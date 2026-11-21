@@ -17,15 +17,19 @@ return function(H)
 
   require("emojis").setup({})
 
-  --- Replace data_mod.ensure for the duration of `fn`, returning a fixed
-  --- { by_cp, list, ranges } (or an error) instead of touching the network.
+  --- Replace data_mod.ensure and data_mod.load for the duration of `fn`,
+  --- answering with a fixed { by_cp, list, ranges } (or an error) instead of
+  --- touching the network. `load` answers at once, as it does for cached data.
   ---@param stub fun(): table|nil, string|nil
   ---@param fn fun(): nil
   local function with_stub_data(stub, fn)
-    local real = data_mod.ensure
+    local real, real_load = data_mod.ensure, data_mod.load
     data_mod.ensure = stub
+    data_mod.load = function(on_done)
+      on_done(stub())
+    end
     local called_ok, err = pcall(fn)
-    data_mod.ensure = real
+    data_mod.ensure, data_mod.load = real, real_load
     if not called_ok then
       error(err, 0)
     end
@@ -57,13 +61,24 @@ return function(H)
   -- proves the fast path never falls through to the UCD.
   do
     local called = false
-    local real = data_mod.ensure
+    local real, real_load = data_mod.ensure, data_mod.load
     data_mod.ensure = function()
       called = true
       return nil, "should not be called"
     end
+    data_mod.load = function(on_done)
+      called = true
+      on_done(nil, "should not be called")
+    end
     local info = unicode.info(require("emojis.core.patterns").codepoint("✅"))
-    data_mod.ensure = real
+    local said = H.notices(function()
+      local buf = H.scratch()
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "✅" })
+      vim.api.nvim_win_set_cursor(0, { 1, 0 })
+      unicode.name_at_cursor(nil, nil)
+    end)
+    data_mod.ensure, data_mod.load = real, real_load
+    ok(said.info[1] and said.info[1]:find("WHITE CHECK MARK", 1, true), "name_at_cursor: curated name at once")
     eq(info.name, "WHITE CHECK MARK", "info: curated catalog name, prettified")
     ok(not called, "info: curated hit never calls data_mod.ensure")
   end

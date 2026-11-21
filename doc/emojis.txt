@@ -593,6 +593,10 @@ else; `digraphs` is unaffected. A codepoint inside a large contiguous UCD
 block (CJK Unified Ideographs, Hangul Syllables, Tangut, ...) gets a
 synthesized "PREFIX-HEX" name, e.g. `CJK UNIFIED IDEOGRAPH-4E2D`.
 
+The download runs in the background: the editor stays usable, the command
+answers once the file is there, and a second command meanwhile joins the
+same download instead of starting another `curl`.
+
 The download writes to a temp file and is renamed into place only once it
 passes a size check; a cached file that turns out corrupt or incomplete is
 deleted and reported rather than trusted, so retrying the command is

@@ -251,7 +251,9 @@ the same convention real Unicode-aware tools use for these blocks, rather
 than storing tens of thousands of individual rows. `digraphs` needs no
 download at all: it reads Neovim's own `vim.fn.digraph_getlist()` directly.
 
-The download is atomic (written to a temp file, renamed into place only
+The download runs in the background (the editor never waits for `curl`;
+the command answers once the file is there, and a second command meanwhile
+joins the same download). It is atomic (written to a temp file, renamed into place only
 once it passes a minimum-size check) and bounded (`curl --max-filesize`),
 and a cached file that parses as corrupt or incomplete is deleted and
 reported rather than silently trusted for the rest of every session —

@@ -143,6 +143,9 @@ there — `search`/`table` need this the first time they run; `name` only
 needs it for a character outside your own catalog. Without `curl` on
 `$PATH`, or before the first successful download, these three report why
 and do nothing else; `digraphs` is unaffected (it never needs the UCD). The
+download runs in the background: the editor stays usable, the command
+answers once the file is there, and running one again meanwhile joins the
+same download instead of starting a second `curl`. The
 download is written to a temp file and only renamed into place once it
 passes a size check, and a cached file that turns out corrupt or incomplete
 (an interrupted download, disk corruption, ...) is deleted and reported
